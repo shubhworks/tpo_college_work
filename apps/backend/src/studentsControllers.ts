@@ -60,7 +60,7 @@ export async function getStudentByEnrollment(req: Request, res: Response) {
     const spreadsheetId = process.env.SPREADSHEET_ID!;
     const readRes = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "Sheet1",
+      range: "Form responses 1",
     });
 
     const rows = readRes.data.values || [];

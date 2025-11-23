@@ -5,8 +5,8 @@ import Link from "next/link"
 import { Calendar, Users, MapPin, Globe, Code, Database, BrainCircuit } from "lucide-react"
 import { PROGRAMS } from "@/lib/mock-data"
 import { Footer } from "@/components/footer"
-import { Navbar } from "../components/Navbar"
 import { studentAPI } from "@/lib/api"
+import { Navbar } from "@/components/Navbar"
 
 // Icon mapping for programs
 const ICONS: Record<string, any> = {

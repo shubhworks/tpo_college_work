@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { getSheetsClient, getDriveClient } from "./googleClient";
+import { extractFileId } from "./lib/extractFileId";
+
 
 function normalizeHeader(h: string) {
   return h.trim().toLowerCase().replace(/\s+/g, "_");
@@ -85,53 +87,6 @@ export async function getStudentByEnrollment(req: Request, res: Response) {
   }
 }
 
-/**
- * List certificate files inside student's folder.
- * Folder name is expected to equal enrollment number.
- * Parent folder id is from env PARENT_CERT_FOLDER_ID.
- */
-// export async function getStudentCertificates(req: Request, res: Response) {
-//   try {
-//     const enrollment = req.params.enrollment;
-//     const drive = await getDriveClient();
-//     const parentId = process.env.PARENT_CERT_FOLDER_ID!;
-//     // 1) Find the folder with name == enrollment under parent
-//     const q = [
-//       `name = '${enrollment.replace(/'/g, "\\'")}'`,
-//       `mimeType = 'application/vnd.google-apps.folder'`,
-//       `'${parentId}' in parents`
-//     ].join(" and ");
-
-//     const folderList = await drive.files.list({
-//       q,
-//       fields: "files(id, name)"
-//     });
-
-//     if (!folderList.data || !(folderList.data as any).files || (folderList.data as any).files.length === 0) {
-//       return res.json([]);
-//     }
-
-//     const folderId = (folderList.data as any).files[0].id!;
-//     // 2) List files in that folder
-//     const filesRes = await drive.files.list({
-//       q: `'${folderId}' in parents and trashed = false`,
-//       fields: "files(id, name, mimeType, webViewLink, webContentLink)"
-//     });
-
-//     const files = ((filesRes.data as any).files || []).map((f: any) => ({
-//       id: f.id,
-//       name: f.name,
-//       mimeType: f.mimeType,
-//       webViewLink: f.webViewLink,
-//       webContentLink: f.webContentLink
-//     }));
-
-//     res.json(files);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: "Failed to list certs" });
-//   }
-// }
 
 export async function getStudentCertificates(req: Request, res: Response) {
   try {
@@ -190,5 +145,48 @@ export async function getStudentCertificates(req: Request, res: Response) {
   } catch (err) {
     console.error("Error fetching certificates:", err);
     res.status(500).json({ error: "Failed to list certs" });
+  }
+}
+
+export async function getImageFileID(req: Request, res: Response) {
+  try {
+    const enrollment = req.params.enrollment;
+    const sheets = await getSheetsClient();
+    const spreadsheetId = process.env.SPREADSHEET_ID!;
+
+    const readRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "Form responses 1",
+    });
+
+    const rows = readRes.data.values || [];
+    if (rows.length === 0) return res.status(404).json({});
+
+    const headersRaw = rows[0] as string[];
+    const headers = headersRaw.map(normalizeHeader);
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i] as string[];
+      const obj: any = {};
+
+      for (let j = 0; j < headers.length; j++) {
+        obj[headers[j]] = row[j] ?? "";
+      }
+
+      if ((obj.university_enrolment_number || "").toString() === enrollment) {
+        const fileId = extractFileId(
+          obj.upload_your_latest_professional_photo
+        );
+
+        return res.json({ fileid: fileId });
+      }
+    }
+
+    return res.status(404).json({});
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Something Went Wrong, Please Try Again Later"
+    });
   }
 }

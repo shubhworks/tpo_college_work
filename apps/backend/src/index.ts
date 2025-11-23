@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import {
     getAllStudents,
+    getImageFileID,
     getStudentByEnrollment,
     getStudentCertificates
 } from "./studentsControllers";
@@ -20,6 +21,10 @@ app.get("/students", getAllStudents);
 
 // get student detail by enrollment number
 app.get("/students/:enrollment", getStudentByEnrollment);
+
+// get file id of image by student's enrollment number
+app.get("/image/:enrollment", getImageFileID);
+
 
 // get certificates list for student
 app.get("/students/:enrollment/certs", getStudentCertificates);

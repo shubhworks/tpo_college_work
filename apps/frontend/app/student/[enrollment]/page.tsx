@@ -20,7 +20,9 @@ export default function StudentDetailPage() {
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(true)
   const [certsLoading, setCertsLoading] = useState(false)
-  const { showToast } = useToast()
+  const { showToast } = useToast();
+  const [fileId, setFileId] = useState<string | null>(null);
+
 
   useEffect(() => {
     const fetchStudentData = async () => {
@@ -42,6 +44,20 @@ export default function StudentDetailPage() {
 
     fetchStudentData()
   }, [enrollment, showToast])
+
+  // fetching the image's fileid
+  useEffect(() => {
+    async function fetchFile() {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/image/${student?.university_enrolment_number}`);
+        const data = await res.json();
+        setFileId(data.fileid || null);
+      } catch (error) {
+        console.error("Error fetching fileId:", error);
+      }
+    }
+    fetchFile();
+  }, [student?.university_enrolment_number]);
 
   if (loading) {
     return (
@@ -94,9 +110,9 @@ export default function StudentDetailPage() {
               <div className="relative w-40 h-40">
                 <Image
                   src={
-                    student.upload_your_latest_professional_photo ||
-                    "/placeholder.svg?height=160&width=160&query=profile" ||
-                    "/placeholder.svg"
+                    fileId
+                      ? `https://drive.google.com/uc?export=view&id=${fileId}`
+                      : "/placeholder.svg?height=80&width=80&query=profile"
                   }
                   alt={student.name}
                   fill

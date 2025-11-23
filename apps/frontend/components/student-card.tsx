@@ -5,6 +5,7 @@ import Image from "next/image"
 import { motion } from "framer-motion"
 import { Github, Linkedin, Code2 } from "lucide-react"
 import type { Student } from "@/types/student"
+import { useEffect, useState } from "react"
 
 interface StudentCardProps {
   student: Student
@@ -12,6 +13,21 @@ interface StudentCardProps {
 
 
 export function StudentCard({ student }: StudentCardProps) {
+  const [fileId, setFileId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchFile() {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/image/${student.university_enrolment_number}`);
+        const data = await res.json();
+        setFileId(data.fileid || null);
+      } catch (error) {
+        console.error("Error fetching fileId:", error);
+      }
+    }
+    fetchFile();
+  }, [student.university_enrolment_number]);
+
   return (
     <Link href={`/student/${student.university_enrolment_number}`}>
       <motion.div
@@ -22,7 +38,11 @@ export function StudentCard({ student }: StudentCardProps) {
         <div className="mb-4 flex justify-center">
           <div className="relative w-20 h-20">
             <Image
-              src={student.upload_your_latest_professional_photo || "/placeholder.svg?height=80&width=80&query=profile"}
+              src={
+                fileId
+                  ? `https://drive.google.com/uc?export=view&id=${fileId}`
+                  : "/placeholder.svg?height=80&width=80&query=profile"
+              }
               alt={student.name}
               fill
               className="rounded-full object-cover"

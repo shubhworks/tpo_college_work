@@ -7,9 +7,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 
 const CAROUSEL_IMAGES = [
-  "/placeholder.svg?height=600&width=1200&text=Campus+View",
-  "/placeholder.svg?height=600&width=1200&text=Graduation+Ceremony",
-  "/placeholder.svg?height=600&width=1200&text=Placement+Drive",
+  '/slideshow/about1.jpg',
+  '/slideshow/about2.jpg',
+  '/slideshow/about3.png',
 ]
 
 export default function AboutPage() {

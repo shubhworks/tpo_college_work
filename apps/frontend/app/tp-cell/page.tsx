@@ -48,7 +48,7 @@ export default function TPCellPage() {
           </div>
           <div className="relative h-[400px] rounded-2xl overflow-hidden shadow-2xl">
             <Image
-              src="/placeholder.svg?height=800&width=600&text=Placement+Office"
+              src="/tpcell1.jpg"
               alt="T&P Office"
               fill
               className="object-cover"

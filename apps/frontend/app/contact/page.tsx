@@ -17,7 +17,6 @@ export default function ContactPage() {
               <User className="w-8 h-8 text-blue-600" />
             </div>
             <h2 className="text-xl font-bold text-gray-900 text-center mb-2">Mr. Rajeev Sethi</h2>
-            <p className="text-blue-600 font-medium text-center mb-6">Training & Placement Officer</p>
 
             <div className="space-y-4">
               <div className="flex items-center gap-4 text-gray-600 p-3 bg-gray-50 rounded-lg">
@@ -37,7 +36,6 @@ export default function ContactPage() {
               <User className="w-8 h-8 text-indigo-600" />
             </div>
             <h2 className="text-xl font-bold text-gray-900 text-center mb-2">Mr. Vikash Thakur</h2>
-            <p className="text-indigo-600 font-medium text-center mb-6">Assistant TPO</p>
 
             <div className="space-y-4">
               <div className="flex items-center gap-4 text-gray-600 p-3 bg-gray-50 rounded-lg">

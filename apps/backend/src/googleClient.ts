@@ -4,11 +4,16 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// const keyFile = path.join(__dirname, "../credentials.json");
-const keyFile = path.join(process.cwd(), "credentials.json");
+if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+  throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_JSON in env");
+}
+
+
+const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+
 
 const auth = new google.auth.GoogleAuth({
-  keyFile,
+  credentials,
   scopes: [
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/spreadsheets.readonly"

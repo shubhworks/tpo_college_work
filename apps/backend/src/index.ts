@@ -11,7 +11,20 @@ import {
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+
+const corsOptions = {
+    origin: [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'https://tpoportal.vercel.app',
+    ],
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+
 app.use(express.json());
 
 app.get("/", (req, res) => res.json({ ok: true }));

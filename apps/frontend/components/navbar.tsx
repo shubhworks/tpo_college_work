@@ -1,97 +1,124 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { GraduationCap, Search } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { Menu, X, GraduationCap } from "lucide-react"
+import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import Image from "next/image"
+
+const NAV_ITEMS = [
+  { name: "Home", href: "/" },
+  { name: "About", href: "/about" },
+  { name: "T&P Cell", href: "/tp-cell" },
+  { name: "Contact Us", href: "/contact" },
+]
 
 export function Navbar() {
-  const router = useRouter()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [branch, setBranch] = useState("")
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const pathname = usePathname()
 
-  // read search params on client after mount (avoids needing Suspense)
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search)
-      setBranch(params.get("branch") || "")
-    } catch (e) {
-      // noop in non-browser environments
+  const isActive = (href: string) => {
+    if (href === "/") {
+      return pathname === "/"
     }
-  }, [])
-
-  const branches = ["CSE", "AIML", "DS", "IOT", "CSBS", "AIR", "CSD", "EC", "EE", "EX", "ME", "CE"]
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      const params = new URLSearchParams()
-      params.set("q", searchQuery)
-      if (branch) params.set("branch", branch)
-      router.push(`/?${params.toString()}`)
-    }
-  }
-
-  const handleBranchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newBranch = e.target.value
-    setBranch(newBranch)
-    if (newBranch) {
-      router.push(`/branch/${newBranch}`)
-    } else {
-      router.push("/")
-    }
+    return pathname.startsWith(href)
   }
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 w-full max-w-7xl">
+      <div className="bg-slate-200/40 backdrop-blur-lg border border-black/10 rounded-full shadow-xl px-6 py-3 w-full mx-auto">
+        <div className="flex justify-between items-center">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-            <GraduationCap className="w-6 h-6 text-blue-600" />
-            <span className="text-gray-900">Student's Data</span>
+          <Link href="/" className="flex items-center space-x-2 group md:mx-10 mx-4">
+            <Image
+              src={"/navLogo.png"}
+              alt="Gyan Ganga Logo"
+              width={70}
+              height={70}
+              className="hover:scale-110 transition-all duration-300"
+            />
+            <div className="flex flex-col">
+              <span className="font-bold text-gray-900 leading-tight text-sm">Gyan Ganga</span>
+              <span className="text-xs text-gray-600 font-medium tracking-wide">Group of Institutions</span>
+            </div>
           </Link>
 
-          {/* Search and Filter */}
-          <div className="flex-1 max-w-md mx-8">
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  placeholder="Search by name or enrollment..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                  aria-label="Search students"
-                />
-              </div>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                aria-label="Submit search"
-              >
-                <Search className="w-4 h-4" />
-              </button>
-            </form>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-6 flex-1 justify-around">
+            <div className="flex items-center space-x-6">
+              {NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`relative px-4 py-2 text-lg font-extrabold rounded-full transition-all duration-300 hover:scale-105 hover:bg-black/10 ${isActive(item.href)
+                      ? "text-slate-800 bg-black/20 shadow-md"
+                      : "text-slate-700 hover:text-slate-900"
+                    }`}
+                >
+                  {item.name}
+                  {isActive(item.href) && (
+                    <motion.div
+                      layoutId="navbar-indicator"
+                      className="absolute inset-0 bg-linear-to-r from-purple-300 to-white rounded-full -z-10"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    />
+                  )}
+                </Link>
+              ))}
+            </div>
           </div>
 
-          {/* Branch Filter */}
-          <select
-            value={branch}
-            onChange={handleBranchChange}
-            className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            aria-label="Filter by branch"
-          >
-            <option value="">All Branches</option>
-            {branches.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>
+          {/* Mobile menu button */}
+          <div className="flex items-center space-x-2 md:hidden">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 rounded-full text-slate-700 hover:text-slate-900 hover:bg-black/10 transition-all duration-300 hover:scale-105"
+            >
+              <div className={`transition-all duration-300 ${isMenuOpen ? "rotate-180" : "rotate-0"}`}>
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </div>
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Menu with AnimatePresence */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden overflow-hidden"
+            >
+              <div className="border-t border-black/20 pt-4">
+                <div className="flex flex-col space-y-3">
+                  {NAV_ITEMS.map((item, index) => (
+                    <motion.div
+                      key={item.href}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 20 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <Link
+                        href={item.href}
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`px-4 py-3 text-base font-medium rounded-full transition-all duration-300 block ${isActive(item.href)
+                            ? "text-slate-800 bg-black/20 shadow-md"
+                            : "text-slate-700 hover:text-slate-900 hover:bg-black/10"
+                          }`}
+                      >
+                        {item.name}
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </nav>
   )

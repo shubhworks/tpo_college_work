@@ -1,17 +1,16 @@
 export interface Student {
-  name: string
   university_enrolment_number: string
-  email_id: string
-  mobile_number: string
+  name: string
   branch: string
   college: string
-  certification_done: string
-  leetcode_profile_link: string
-  github_profile_link: string
-  linkedin_profile_link: string
-  latest_resume_link: string
-  student_folder_link: string
-  upload_your_latest_professional_photo: string
+  email_id?: string
+  mobile_number?: string
+  upload_your_latest_professional_photo?: string
+  latest_resume_link?: string
+  student_folder_link?: string
+  github_profile_link?: string
+  linkedin_profile_link?: string
+  leetcode_profile_link?: string
 }
 
 export interface Certificate {
@@ -20,11 +19,13 @@ export interface Certificate {
   mimeType: string
   webViewLink: string
   webContentLink: string
-  size?: number
+  thumbnailLink?: string
 }
 
-export interface BranchData {
-  branch: string
-  count: number
-  icon: string
+export interface Program {
+  id: string
+  title: string
+  slug: string // e.g. "CSE"
+  description: string
+  duration: string
 }

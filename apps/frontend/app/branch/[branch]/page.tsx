@@ -9,7 +9,7 @@ import { StudentModal } from "@/components/student-modal"
 import { studentAPI } from "@/lib/api"
 import type { Student } from "@/types/student"
 import { Search, SlidersHorizontal } from "lucide-react"
-import { Navbar } from "@/components/Navbar"
+import { Navbar } from "../../../components/Navbar"
 
 const ITEMS_PER_PAGE = 24
 

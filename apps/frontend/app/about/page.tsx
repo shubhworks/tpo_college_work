@@ -4,7 +4,7 @@ import { Footer } from "@/components/footer"
 import Image from "next/image"
 import { useState, useEffect } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { Navbar } from "@/components/Navbar"
+import { Navbar } from "../../components/Navbar"
 
 const CAROUSEL_IMAGES = [
   "/placeholder.svg?height=600&width=1200&text=Campus+View",

@@ -1,7 +1,7 @@
 import { Footer } from "@/components/footer"
 import Image from "next/image"
 import { CheckCircle2 } from "lucide-react"
-import { Navbar } from "@/components/Navbar"
+import { Navbar } from "../../components/Navbar"
 
 export default function TPCellPage() {
   return (

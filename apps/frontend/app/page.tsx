@@ -116,7 +116,7 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Website</p>
-                <a href="#" className="text-sm font-medium text-blue-600 hover:underline mt-1">
+                <a href="http://gyangangagroup.in" target="_blank" className="text-sm font-medium text-blue-600 hover:underline mt-1">
                   Visit Website
                 </a>
               </div>

@@ -30,9 +30,13 @@ export function StudentCard({ student, onOpenProfile }: StudentCardProps) {
   return (
     <motion.div
       whileHover={{ y: -6 }}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col h-full group"
+      className="bg-linear-to-br from-blue-500 via-white to-blue-400/50
+  cursor-pointer rounded-2xl border border-white/20
+  shadow-sm hover:shadow-xl transition-all duration-300
+  overflow-hidden flex flex-col h-full group
+  bg-size-[200%_200%] animate-gradient-move"
     >
-      <div className="p-6 flex flex-col items-center flex-1">
+      <div onClick={() => onOpenProfile(student.university_enrolment_number)} className="p-6 flex flex-col items-center flex-1">
         {/* Avatar with Ring */}
         <div className="mb-5 relative">
           <div className="absolute inset-0 bg-linear-to-br from-blue-100 to-indigo-100 rounded-full scale-110 group-hover:scale-125 transition-transform duration-500" />
@@ -51,8 +55,8 @@ export function StudentCard({ student, onOpenProfile }: StudentCardProps) {
         </div>
 
         {/* Info */}
-        <h3 className="text-lg font-bold text-gray-900 text-center mb-1 line-clamp-1">{student.name}</h3>
-        <p className="text-xs font-mono text-gray-400 text-center mb-4">{student.university_enrolment_number}</p>
+        <h3 className="text-xl font-extrabold text-black text-center mb-1 line-clamp-1">{student.name}</h3>
+        <p className="text-xs font-bold text-gray-800 text-center mb-4">{student.university_enrolment_number}</p>
 
         <div className="flex flex-wrap justify-center gap-2 mb-6">
           <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-bold tracking-wide uppercase">

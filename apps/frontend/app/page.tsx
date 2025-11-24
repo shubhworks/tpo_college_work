@@ -146,9 +146,16 @@ export default function Home() {
               return (
                 <div
                   key={program.id}
-                  className="group flex flex-col bg-white rounded-2xl border border-gray-200 hover:border-blue-200 hover:shadow-xl transition-all duration-300 overflow-hidden"
+                  className="group cursor-pointer flex flex-col
+    rounded-2xl border border-white/20
+    hover:border-blue-200 hover:shadow-xl
+    transition-all duration-300 overflow-hidden
+    bg-linear-to-br from-blue-500 via-white to-blue-300
+    bg-size-[200%_200%] animate-gradient-move"
                 >
-                  <div className="p-8 flex flex-col h-full">
+                  <div onClick={() => {
+                    window.location.href = `/branch/${program.slug}`;
+                  }} className="p-8 flex flex-col h-full">
                     <div className="flex justify-between items-start mb-6">
                       <div className={`p-4 rounded-xl ${colorClass}`}>
                         <Icon className="w-8 h-8" />

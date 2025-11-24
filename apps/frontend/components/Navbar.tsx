@@ -32,16 +32,12 @@ export function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group md:mx-10 mx-4">
             <Image
-              src={"/navLogo.png"}
+              src={"/footerLogo.png"}
               alt="Gyan Ganga Logo"
-              width={70}
-              height={70}
+              width={130}
+              height={130}
               className="hover:scale-110 transition-all duration-300"
             />
-            <div className="flex flex-col">
-              <span className="font-bold text-gray-900 leading-tight text-sm">Gyan Ganga</span>
-              <span className="text-xs text-gray-600 font-medium tracking-wide">Group of Institutions</span>
-            </div>
           </Link>
 
           {/* Desktop Navigation */}

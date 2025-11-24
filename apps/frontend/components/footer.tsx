@@ -1,4 +1,5 @@
 import { GraduationCap, MapPin, Phone, Mail } from "lucide-react"
+import Image from "next/image"
 
 export function Footer() {
   return (
@@ -8,8 +9,13 @@ export function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-3 text-white">
-              <GraduationCap className="w-8 h-8" />
-              <span className="text-xl font-bold">Gyan Ganga</span>
+              <Image
+                src={"/footerLogo.png"}
+                alt="Gyan Ganga Logo"
+                width={200}
+                height={200}
+                className="hover:scale-110 transition-all duration-300"
+              />
             </div>
             <p className="text-sm leading-relaxed text-slate-400">
               Premier group of engineering institutions offering world-class technical education.
@@ -26,11 +32,12 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-blue-400" />
-                <span>+91 123 456 7890</span>
+                <span>+91 98765 43210</span>,
+                <span>+91 98765 43211</span>
               </div>
               <div className="flex items-center gap-3">
                 <MapPin className="w-4 h-4 text-blue-400" />
-                <span>Jabalpur, Madhya Pradesh</span>
+                <span>Gyan Ganga Group of Institutions, Jabalpur, Madhya Pradesh</span>
               </div>
             </div>
           </div>

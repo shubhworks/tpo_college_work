@@ -1,23 +1,20 @@
 import { Request, Response } from "express";
 import { getSheetsClient, getDriveClient } from "./googleClient";
 import { extractFileId } from "./lib/extractFileId";
+import { parseDriveLinks } from "./lib/parseDriveLinks";
 
 
 function normalizeHeader(h: string) {
   return h.trim().toLowerCase().replace(/\s+/g, "_");
 }
 
-/**
- * Read all students from Google Sheets.
- * Expects first row as headers.
- */
 export async function getAllStudents(req: Request, res: Response) {
   try {
     const sheets = await getSheetsClient();
     const spreadsheetId = process.env.SPREADSHEET_ID!;
     const readRes = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "Form responses 1", // change if different sheet name
+      range: "Sheet2", // change if different sheet name
     });
 
     const rows = readRes.data.values || [];
@@ -52,9 +49,7 @@ export async function getAllStudents(req: Request, res: Response) {
   }
 }
 
-/**
- * Get single student by enrollment number (exact match)
- */
+
 export async function getStudentByEnrollment(req: Request, res: Response) {
   try {
     const enrollment = req.params.enrollment;
@@ -62,7 +57,7 @@ export async function getStudentByEnrollment(req: Request, res: Response) {
     const spreadsheetId = process.env.SPREADSHEET_ID!;
     const readRes = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "Form responses 1",
+      range: "Sheet2",
     });
 
     const rows = readRes.data.values || [];
@@ -87,7 +82,6 @@ export async function getStudentByEnrollment(req: Request, res: Response) {
   }
 }
 
-
 export async function getStudentCertificates(req: Request, res: Response) {
   try {
     const enrollment = req.params.enrollment;
@@ -96,57 +90,120 @@ export async function getStudentCertificates(req: Request, res: Response) {
 
     const readRes = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "Form Responses 1", // CHANGE to your sheet tab name
+      range: "Sheet2", // exact sheet tab name
     });
 
     const rows = readRes.data.values || [];
-    const headers = rows[0].map((h: string) =>
-      h.trim().toLowerCase().replace(/\s+/g, "_")
-    );
+    if (rows.length === 0) return res.json([]);
+
+    const headers = rows[0].map((h: string) => normalizeHeader(h));
 
     const uploadField1 = "upload_certificate";
     const uploadField2 = "upload_more_if_you_have";
-
-    const certs: any[] = [];
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       const obj: any = {};
 
       headers.forEach((h: string, idx: number) => {
-        obj[h] = row[idx] || "";
+        obj[h] = row[idx] ?? "";
       });
 
-      if (obj.university_enrolment_number === enrollment) {
-        const links1 = obj[uploadField1] ? obj[uploadField1].split(",") : [];
-        const links2 = obj[uploadField2] ? obj[uploadField2].split(",") : [];
+      if ((obj.university_enrolment_number || "").toString() === enrollment) {
+        // 🔥 PERMANENT FIX HERE
+        const links1 = parseDriveLinks(obj[uploadField1]);
+        const links2 = parseDriveLinks(obj[uploadField2]);
+
         const allLinks = [...links1, ...links2];
 
-        allLinks.forEach((url) => {
-          const match = url.match(/id=([^&]+)/);
-          if (!match) return;
+        const certs = allLinks
+          .map((url) => {
+            const match = url.match(/id=([^&]+)/) || url.match(/\/d\/([^/]+)/);
+            if (!match) return null;
 
-          const fileId = match[1];
+            const fileId = match[1];
 
-          certs.push({
-            id: fileId,
-            name: `Certificate-${fileId}.pdf`,
-            mimeType: "application/pdf",
-            webViewLink: `https://drive.google.com/file/d/${fileId}/view`,
-            webContentLink: `https://drive.google.com/uc?export=download&id=${fileId}`,
-          });
-        });
+            return {
+              id: fileId,
+              name: `Certificate-${fileId}`,
+              mimeType: "application/pdf",
+              webViewLink: `https://drive.google.com/file/d/${fileId}/view`,
+              webContentLink: `https://drive.google.com/uc?export=download&id=${fileId}`,
+            };
+          })
+          .filter(Boolean); // remove nulls
 
         return res.json(certs);
       }
     }
 
-    res.json([]);
+    return res.json([]);
   } catch (err) {
     console.error("Error fetching certificates:", err);
     res.status(500).json({ error: "Failed to list certs" });
   }
 }
+
+
+// export async function getStudentCertificates(req: Request, res: Response) {
+//   try {
+//     const enrollment = req.params.enrollment;
+//     const sheets = await getSheetsClient();
+//     const spreadsheetId = process.env.SPREADSHEET_ID!;
+
+//     const readRes = await sheets.spreadsheets.values.get({
+//       spreadsheetId,
+//       range: "Sheet2", // CHANGE to your sheet tab name
+//     });
+
+//     const rows = readRes.data.values || [];
+//     const headers = rows[0].map((h: string) =>
+//       h.trim().toLowerCase().replace(/\s+/g, "_")
+//     );
+
+//     const uploadField1 = "upload_certificate";
+//     const uploadField2 = "upload_more_if_you_have";
+
+//     const certs: any[] = [];
+
+//     for (let i = 1; i < rows.length; i++) {
+//       const row = rows[i];
+//       const obj: any = {};
+
+//       headers.forEach((h: string, idx: number) => {
+//         obj[h] = row[idx] || "";
+//       });
+
+//       if (obj.university_enrolment_number === enrollment) {
+//         const links1 = obj[uploadField1] ? obj[uploadField1].split(",") : [];
+//         const links2 = obj[uploadField2] ? obj[uploadField2].split(",") : [];
+//         const allLinks = [...links1, ...links2];
+
+//         allLinks.forEach((url) => {
+//           const match = url.match(/id=([^&]+)/);
+//           if (!match) return;
+
+//           const fileId = match[1];
+
+//           certs.push({
+//             id: fileId,
+//             name: `Certificate-${fileId}.pdf`,
+//             mimeType: "application/pdf",
+//             webViewLink: `https://drive.google.com/file/d/${fileId}/view`,
+//             webContentLink: `https://drive.google.com/uc?export=download&id=${fileId}`,
+//           });
+//         });
+
+//         return res.json(certs);
+//       }
+//     }
+
+//     res.json([]);
+//   } catch (err) {
+//     console.error("Error fetching certificates:", err);
+//     res.status(500).json({ error: "Failed to list certs" });
+//   }
+// }
 
 export async function getImageFileID(req: Request, res: Response) {
   try {
@@ -156,7 +213,7 @@ export async function getImageFileID(req: Request, res: Response) {
 
     const readRes = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "Form responses 1",
+      range: "Sheet2",
     });
 
     const rows = readRes.data.values || [];

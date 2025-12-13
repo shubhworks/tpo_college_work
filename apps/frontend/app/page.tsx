@@ -96,7 +96,7 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Established</p>
-                <p className="text-sm font-medium text-gray-900 mt-1">1992</p>
+                <p className="text-sm font-medium text-gray-900 mt-1">2003</p>
               </div>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start gap-4">
@@ -116,7 +116,7 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Website</p>
-                <a href="http://gyangangagroup.in" target="_blank" className="text-sm font-medium text-blue-600 hover:underline mt-1">
+                <a href="https://ggits.org" target="_blank" className="text-sm font-medium text-blue-600 hover:underline mt-1">
                   Visit Website
                 </a>
               </div>

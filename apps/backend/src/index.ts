@@ -27,7 +27,9 @@ app.use(cors(corsOptions));
 
 app.use(express.json());
 
-app.get("/", (req, res) => res.json({ ok: true }));
+app.get("/" , (req,res) => {
+    res.send("TPO SERVER IS UP!!");
+})
 
 // get all students (optional ?branch=)
 app.get("/students", getAllStudents);

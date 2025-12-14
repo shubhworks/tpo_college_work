@@ -1,9 +1,8 @@
 "use client"
 
-import { FileText, Eye, Download, X } from "lucide-react"
+import { FileText, Eye, X, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Certificate } from "@/types/student"
-import Image from "next/image"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
 // -----------------------------
@@ -31,7 +30,41 @@ function toPreviewURL(url: string = "") {
 }
 
 export function CertGallery({ certificates }: { certificates: Certificate[] }) {
-  const [selectedCert, setSelectedCert] = useState<Certificate | null>(null)
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+
+  function openAt(index: number) {
+    setSelectedIndex(index)
+  }
+
+  function close() {
+    setSelectedIndex(null)
+  }
+
+  function goPrev() {
+    setSelectedIndex((i) => {
+      if (i === null) return null
+      return i > 0 ? i - 1 : i
+    })
+  }
+
+  function goNext() {
+    setSelectedIndex((i) => {
+      if (i === null) return null
+      return i < certificates.length - 1 ? i + 1 : i
+    })
+  }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (selectedIndex === null) return
+      if (e.key === "ArrowLeft") goPrev()
+      if (e.key === "ArrowRight") goNext()
+      if (e.key === "Escape") close()
+    }
+
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [selectedIndex])
 
   if (certificates.length === 0) {
     return (
@@ -46,7 +79,7 @@ export function CertGallery({ certificates }: { certificates: Certificate[] }) {
     <>
       {/* GRID LIST */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {certificates.map((cert) => {
+        {certificates.map((cert, idx) => {
           const previewURL = toPreviewURL(cert.webContentLink)
 
           return (
@@ -58,7 +91,7 @@ export function CertGallery({ certificates }: { certificates: Certificate[] }) {
               {/* Thumbnail with Mini Iframe Preview */}
               <div
                 className="h-40 bg-gray-100 relative cursor-pointer overflow-hidden"
-                onClick={() => setSelectedCert(cert)}
+                onClick={() => openAt(idx)}
               >
                 {previewURL ? (
                   <iframe
@@ -84,7 +117,8 @@ export function CertGallery({ certificates }: { certificates: Certificate[] }) {
                 <div className="flex gap-2">
                   {/* Open Modal */}
                   <button
-                    onClick={() => setSelectedCert(cert)}
+                    type="button"
+                    onClick={() => openAt(idx)}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-xs font-medium"
                   >
                     <Eye className="w-3 h-3" />
@@ -96,16 +130,17 @@ export function CertGallery({ certificates }: { certificates: Certificate[] }) {
           )
         })}
       </div>
+
       {/* MODAL VIEWER */}
       <AnimatePresence>
-        {selectedCert && (
+        {selectedIndex !== null && (
           <div className="fixed inset-0 z-60 flex items-center justify-center p-4 sm:p-6">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-              onClick={() => setSelectedCert(null)}
+              onClick={() => close()}
             />
 
             {/* Modal Box */}
@@ -113,26 +148,51 @@ export function CertGallery({ certificates }: { certificates: Certificate[] }) {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
+              className="relative bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900"></h3>
-                <button
-                  onClick={() => setSelectedCert(null)}
-                  className="p-2 text-white bg-red-500 cursor-pointer hover:bg-red-700 rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+              <div className="flex items-center justify-end p-4 border-b border-gray-100">
+                {/* <h3 className="text-lg font-semibold text-gray-900">{certificates[selectedIndex].name}</h3> */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => close()}
+                    className="p-2 text-white bg-red-500 cursor-pointer hover:bg-red-700 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* Viewer */}
-              <div className="flex-1 overflow-auto bg-gray-200 p-3">
+              <div className="flex-1 overflow-auto bg-gray-200 p-3 relative flex items-center justify-center">
+                {/* Left Arrow */}
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  disabled={selectedIndex === 0}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow hover:bg-white"
+                  aria-label="Previous certificate"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+
                 <iframe
-                  src={toPreviewURL(selectedCert.webContentLink)}
-                  className="w-full h-[80vh] rounded-lg border-0"
+                  src={toPreviewURL(certificates[selectedIndex].webContentLink)}
+                  className="w-full h-[80vh] rounded-lg border-0 max-w-full"
                 />
+
+                {/* Right Arrow */}
+                <button
+                  type="button"
+                  onClick={goNext}
+                  disabled={selectedIndex >= certificates.length - 1}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow hover:bg-white"
+                  aria-label="Next certificate"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
               </div>
             </motion.div>
           </div>

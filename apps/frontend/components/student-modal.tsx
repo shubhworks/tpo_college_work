@@ -150,6 +150,7 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
                       {student.latest_resume_link && (
                         <a
                           href={student.latest_resume_link}
+                          target="_blank"
                           className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors shadow-sm text-sm font-medium"
                         >
                           <Download className="w-4 h-4" /> Resume

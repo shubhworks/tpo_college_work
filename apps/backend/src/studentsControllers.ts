@@ -2,22 +2,39 @@ import { Request, Response } from "express";
 import { getSheetsClient, getDriveClient } from "./googleClient";
 import { extractFileId } from "./lib/extractFileId";
 import { parseDriveLinks } from "./lib/parseDriveLinks";
+import { getCache, setCache } from "./cache";
 
 
 function normalizeHeader(h: string) {
   return h.trim().toLowerCase().replace(/\s+/g, "_");
 }
 
+const CACHE_TTL_SECONDS = Number(process.env.CACHE_TTL_SECONDS || 300); // default 5 minutes
+
+async function loadSheetRows(sheets: any, spreadsheetId: string, force = false) {
+  const cacheKey = `sheet_${spreadsheetId}_Sheet2`;
+  if (!force) {
+    const cached = getCache<any[]>(cacheKey);
+    if (cached) return cached;
+  }
+
+  const readRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Sheet2",
+  });
+
+  const rows = readRes.data.values || [];
+  setCache(cacheKey, rows, CACHE_TTL_SECONDS);
+  return rows;
+}
+
 export async function getAllStudents(req: Request, res: Response) {
   try {
     const sheets = await getSheetsClient();
     const spreadsheetId = process.env.SPREADSHEET_ID!;
-    const readRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: "Sheet2", // change if different sheet name
-    });
+    const force = (req.query.force as string) === "true";
 
-    const rows = readRes.data.values || [];
+    const rows = await loadSheetRows(sheets, spreadsheetId, force);
     if (rows.length === 0) return res.json([]);
 
     const headersRaw = rows[0] as string[];
@@ -55,12 +72,8 @@ export async function getStudentByEnrollment(req: Request, res: Response) {
     const enrollment = req.params.enrollment;
     const sheets = await getSheetsClient();
     const spreadsheetId = process.env.SPREADSHEET_ID!;
-    const readRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: "Sheet2",
-    });
-
-    const rows = readRes.data.values || [];
+    const force = (req.query.force as string) === "true";
+    const rows = await loadSheetRows(sheets, spreadsheetId, force);
     if (rows.length === 0) return res.status(404).json({});
 
     const headersRaw = rows[0] as string[];
@@ -87,13 +100,8 @@ export async function getStudentCertificates(req: Request, res: Response) {
     const enrollment = req.params.enrollment;
     const sheets = await getSheetsClient();
     const spreadsheetId = process.env.SPREADSHEET_ID!;
-
-    const readRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: "Sheet2", // exact sheet tab name
-    });
-
-    const rows = readRes.data.values || [];
+    const force = (req.query.force as string) === "true";
+    const rows = await loadSheetRows(sheets, spreadsheetId, force);
     if (rows.length === 0) return res.json([]);
 
     const headers = rows[0].map((h: string) => normalizeHeader(h));
@@ -210,13 +218,8 @@ export async function getImageFileID(req: Request, res: Response) {
     const enrollment = req.params.enrollment;
     const sheets = await getSheetsClient();
     const spreadsheetId = process.env.SPREADSHEET_ID!;
-
-    const readRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: "Sheet2",
-    });
-
-    const rows = readRes.data.values || [];
+    const force = (req.query.force as string) === "true";
+    const rows = await loadSheetRows(sheets, spreadsheetId, force);
     if (rows.length === 0) return res.status(404).json({});
 
     const headersRaw = rows[0] as string[];

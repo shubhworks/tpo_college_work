@@ -172,7 +172,7 @@ export function CertGallery({ certificates }: { certificates: Certificate[] }) {
                   type="button"
                   onClick={goPrev}
                   disabled={selectedIndex === 0}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow hover:bg-white"
+                  className="absolute cursor-pointer left-3 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow hover:bg-white"
                   aria-label="Previous certificate"
                 >
                   <ChevronLeft className="w-6 h-6" />
@@ -188,7 +188,7 @@ export function CertGallery({ certificates }: { certificates: Certificate[] }) {
                   type="button"
                   onClick={goNext}
                   disabled={selectedIndex >= certificates.length - 1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow hover:bg-white"
+                  className="absolute cursor-pointer right-3 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow hover:bg-white"
                   aria-label="Next certificate"
                 >
                   <ChevronRight className="w-6 h-6" />

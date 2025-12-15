@@ -132,11 +132,11 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
                             <Mail className="w-4 h-4" /> {student.email_id}
                           </div>
                         )}
-                        {student.mobile_number && (
+                        {/* {student.mobile_number && (
                           <div className="flex items-center gap-3 justify-center sm:justify-start">
                             <Phone className="w-4 h-4" /> {student.mobile_number}
                           </div>
-                        )}
+                        )} */}
                       </div>
                     </div>
                   </div>

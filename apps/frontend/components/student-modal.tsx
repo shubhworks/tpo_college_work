@@ -7,6 +7,7 @@ import { Github, Linkedin, Code2, Mail, Phone, FileText, Download, X, Graduation
 import { studentAPI } from "@/lib/api"
 import type { Student, Certificate } from "@/types/student"
 import { CertGallery } from "./cert-gallery"
+import { useBatch } from "@/context/batch-context"
 
 interface StudentModalProps {
   enrollment: string | null
@@ -15,6 +16,7 @@ interface StudentModalProps {
 }
 
 export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps) {
+  const { batch, spreadsheetId } = useBatch()
   const [student, setStudent] = useState<Student | null>(null)
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,8 +26,14 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
   // fetching the image's fileid
   useEffect(() => {
     async function fetchFile() {
+      if (!student) return;
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/image/${student?.university_enrolment_number}`);
+        const studentEnrollment = student.university_enrolment_number;
+        const params = new URLSearchParams();
+        if (batch) params.set("batch", batch);
+        if (spreadsheetId) params.set("spreadsheetId", spreadsheetId);
+        
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/image/${studentEnrollment}?${params.toString()}`);
         const data = await res.json();
         setFileId(data.fileid || null);
       } catch (error) {
@@ -33,7 +41,7 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
       }
     }
     fetchFile();
-  }, [student?.university_enrolment_number]);
+  }, [student, batch, spreadsheetId]);
 
   useEffect(() => {
     if (isOpen && enrollment) {
@@ -41,8 +49,8 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
         setLoading(true)
         try {
           const [studentRes, certsRes] = await Promise.all([
-            studentAPI.getStudent(enrollment),
-            studentAPI.getStudentCerts(enrollment),
+            studentAPI.getStudent(enrollment, batch, spreadsheetId || undefined),
+            studentAPI.getStudentCerts(enrollment, batch, spreadsheetId || undefined),
           ])
           setStudent(studentRes.data || null)
           setCertificates(certsRes.data || [])
@@ -54,7 +62,7 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
       }
       fetchData()
     }
-  }, [isOpen, enrollment])
+  }, [isOpen, enrollment, batch, spreadsheetId])
 
   if (!isOpen) return null
 
@@ -104,7 +112,7 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
                               ? `https://drive.google.com/uc?export=view&id=${fileId}`
                               : "/placeholder.svg?height=80&width=80&query=profile"
                           }
-                          alt={student.name}
+                          alt={student.name || "Student"}
                           fill
                           className="object-cover"
                         />
@@ -132,11 +140,6 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
                             <Mail className="w-4 h-4" /> {student.email_id}
                           </div>
                         )}
-                        {/* {student.mobile_number && (
-                          <div className="flex items-center gap-3 justify-center sm:justify-start">
-                            <Phone className="w-4 h-4" /> {student.mobile_number}
-                          </div>
-                        )} */}
                       </div>
                     </div>
                   </div>
@@ -208,3 +211,4 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
     </AnimatePresence>
   )
 }
+

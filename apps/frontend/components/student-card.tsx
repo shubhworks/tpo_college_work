@@ -5,6 +5,7 @@ import { Github, Linkedin, Code2 } from "lucide-react"
 import type { Student } from "@/types/student"
 import Image from "next/image"
 import { useEffect, useState } from "react"
+import { useBatch } from "@/context/batch-context"
 
 interface StudentCardProps {
   student: Student
@@ -12,12 +13,18 @@ interface StudentCardProps {
 }
 
 export function StudentCard({ student, onOpenProfile }: StudentCardProps) {
+  const { batch, spreadsheetId } = useBatch()
   const [fileId, setFileId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchFile() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/image/${student.university_enrolment_number}`);
+        const studentEnrollment = student.university_enrolment_number;
+        const params = new URLSearchParams();
+        if (batch) params.set("batch", batch);
+        if (spreadsheetId) params.set("spreadsheetId", spreadsheetId);
+
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/image/${studentEnrollment}?${params.toString()}`);
         const data = await res.json();
         setFileId(data.fileid || null);
       } catch (error) {
@@ -25,7 +32,9 @@ export function StudentCard({ student, onOpenProfile }: StudentCardProps) {
       }
     }
     fetchFile();
-  }, [student.university_enrolment_number]);
+  }, [student.university_enrolment_number, batch, spreadsheetId]);
+
+  const studentEnrollment = student.university_enrolment_number;
 
   return (
     <motion.div
@@ -36,7 +45,7 @@ export function StudentCard({ student, onOpenProfile }: StudentCardProps) {
   overflow-hidden flex flex-col h-full group
   bg-size-[200%_200%] animate-gradient-move"
     >
-      <div onClick={() => onOpenProfile(student.university_enrolment_number)} className="p-6 flex flex-col items-center flex-1">
+      <div onClick={() => onOpenProfile(studentEnrollment)} className="p-6 flex flex-col items-center flex-1">
         {/* Avatar with Ring */}
         <div className="mb-5 relative">
           <div className="absolute inset-0 bg-linear-to-br from-blue-100 to-indigo-100 rounded-full scale-110 group-hover:scale-125 transition-transform duration-500" />
@@ -47,7 +56,7 @@ export function StudentCard({ student, onOpenProfile }: StudentCardProps) {
                   ? `https://drive.google.com/uc?export=view&id=${fileId}`
                   : "/placeholder.svg?height=80&width=80&query=profile"
               }
-              alt={student.name}
+              alt={student.name || "Student"}
               fill
               className="object-cover"
             />
@@ -56,7 +65,7 @@ export function StudentCard({ student, onOpenProfile }: StudentCardProps) {
 
         {/* Info */}
         <h3 className="text-xl font-extrabold text-black text-center mb-1 line-clamp-1">{student.name}</h3>
-        <p className="text-xs font-bold text-gray-800 text-center mb-4">{student.university_enrolment_number}</p>
+        <p className="text-xs font-bold text-gray-800 text-center mb-4">{studentEnrollment}</p>
 
         <div className="flex flex-wrap justify-center gap-2 mb-6">
           <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-bold tracking-wide uppercase">
@@ -93,7 +102,7 @@ export function StudentCard({ student, onOpenProfile }: StudentCardProps) {
 
       {/* Action Button */}
       <button
-        onClick={() => onOpenProfile(student.university_enrolment_number)}
+        onClick={() => onOpenProfile(studentEnrollment)}
         className="w-full py-3 bg-gray-50 hover:bg-blue-600 text-gray-600 hover:text-white text-sm font-medium transition-colors duration-300 border-t border-gray-100"
       >
         View Full Profile
@@ -101,3 +110,4 @@ export function StudentCard({ student, onOpenProfile }: StudentCardProps) {
     </motion.div>
   )
 }
+

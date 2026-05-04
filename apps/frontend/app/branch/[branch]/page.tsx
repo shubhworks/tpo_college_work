@@ -11,12 +11,14 @@ import type { Student } from "@/types/student"
 import { Search, SlidersHorizontal } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { BranchSelector } from "@/components/branch-selector"
+import { useBatch } from "@/context/batch-context"
 
 const ITEMS_PER_PAGE = 24
 
 export default function BranchPage() {
   const params = useParams()
   const branch = params.branch as string
+  const { batch, spreadsheetId } = useBatch()
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -30,12 +32,12 @@ export default function BranchPage() {
     const fetchStudents = async () => {
       try {
         setLoading(true)
-        const response = await studentAPI.getStudents(branch)
+        const response = await studentAPI.getStudents(branch, batch, spreadsheetId || undefined)
         // Filter students by branch if the API doesn't do it automatically
         const allStudents = response.data as Student[]
         const branchStudents = allStudents.filter(student => 
-          student.branch === branch || 
-          student.branch === branch.replace('-', ' ') ||
+          (student.branch || "").toLowerCase() === branch.toLowerCase() || 
+          (student.branch || "").toLowerCase() === branch.replace('-', ' ').toLowerCase() ||
           allStudents.length === 0 // If no students, show empty state
         )
         setStudents(branchStudents)
@@ -47,13 +49,13 @@ export default function BranchPage() {
       }
     }
     fetchStudents()
-  }, [branch])
+  }, [branch, batch, spreadsheetId])
 
   const filteredStudents = useMemo(() => {
     return students.filter(
       (s) =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.university_enrolment_number.toLowerCase().includes(searchQuery.toLowerCase()),
+        (s.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.university_enrolment_number || "").toString().toLowerCase().includes(searchQuery.toLowerCase()),
     )
   }, [students, searchQuery])
 

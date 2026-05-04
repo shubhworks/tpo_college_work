@@ -11,9 +11,14 @@ export const apiClient = axios.create({
 
 // API endpoints
 export const studentAPI = {
-  getStudents: (branch?: string) => apiClient.get("/students", { params: branch ? { branch } : {} }),
+  getBatches: () => apiClient.get("/batches"),
 
-  getStudent: (enrollment: string) => apiClient.get(`/students/${enrollment}`),
+  getStudents: (branch?: string, batch?: string, spreadsheetId?: string) => 
+    apiClient.get("/students", { params: { branch, batch, spreadsheetId } }),
 
-  getStudentCerts: (enrollment: string) => apiClient.get(`/students/${enrollment}/certs`),
+  getStudent: (enrollment: string, batch?: string, spreadsheetId?: string) => 
+    apiClient.get(`/students/${enrollment}`, { params: { batch, spreadsheetId } }),
+
+  getStudentCerts: (enrollment: string, batch?: string, spreadsheetId?: string) => 
+    apiClient.get(`/students/${enrollment}/certs`, { params: { batch, spreadsheetId } }),
 }

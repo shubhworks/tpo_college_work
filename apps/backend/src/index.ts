@@ -5,7 +5,8 @@ import {
     getAllStudents,
     getImageFileID,
     getStudentByEnrollment,
-    getStudentCertificates
+    getStudentCertificates,
+    getBatches
 } from "./studentsControllers";
 
 dotenv.config();
@@ -30,6 +31,9 @@ app.use(express.json());
 app.get("/" , (req,res) => {
     res.send("TPO SERVER IS UP!!");
 })
+
+// get available batches
+app.get("/batches", getBatches);
 
 // get all students (optional ?branch=)
 app.get("/students", getAllStudents);

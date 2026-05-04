@@ -1,23 +1,32 @@
 "use client"
 
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import { PROGRAMS } from "@/lib/mock-data"
 import { ChevronDown } from "lucide-react"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useBatch } from "@/context/batch-context"
 
 export function BranchSelector() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const currentBranch = params.branch as string
   const [isOpen, setIsOpen] = useState(false)
+  const { batch, spreadsheetId } = useBatch()
 
   const getBranchDisplayName = (slug: string) => {
     const program = PROGRAMS.find(p => p.slug === slug)
     return program?.title || slug
   }
 
-  const currentBranchName = getBranchDisplayName(currentBranch)
+  const getLink = (slug: string) => {
+      const p = new URLSearchParams(searchParams.toString())
+      if (batch) p.set("batch", batch)
+      if (spreadsheetId) p.set("spreadsheetId", spreadsheetId)
+      const query = p.toString()
+      return `/branch/${slug}${query ? `?${query}` : ""}`
+  }
 
   return (
     <div className="fixed top-28 flex justify-center items-center left-0 right-0 z-40">
@@ -28,7 +37,7 @@ export function BranchSelector() {
             {PROGRAMS.map((program) => (
               <Link
                 key={program.slug}
-                href={`/branch/${program.slug}`}
+                href={getLink(program.slug)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-300 ${
                   currentBranch === program.slug
                     ? "bg-blue-600 text-white shadow-md"
@@ -66,7 +75,7 @@ export function BranchSelector() {
                   {PROGRAMS.map((program) => (
                     <Link
                       key={program.slug}
-                      href={`/branch/${program.slug}`}
+                      href={getLink(program.slug)}
                       onClick={() => setIsOpen(false)}
                       className={`block px-4 py-3 text-sm font-medium transition-colors duration-200 ${
                         currentBranch === program.slug

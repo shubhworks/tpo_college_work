@@ -7,6 +7,7 @@ import { PROGRAMS } from "@/lib/mock-data"
 import { Footer } from "@/components/footer"
 import { studentAPI } from "@/lib/api"
 import { Navbar } from "@/components/Navbar"
+import { useBatch } from "@/context/batch-context"
 
 // Icon mapping for programs
 const ICONS: Record<string, any> = {
@@ -26,20 +27,22 @@ interface BranchCounts {
 }
 
 export default function Home() {
+  const { batch, spreadsheetId } = useBatch()
   const [branchCounts, setBranchCounts] = useState<BranchCounts>({})
   const [loading, setLoading] = useState(true)
   const [totalPrograms, setTotalPrograms] = useState(0)
 
   useEffect(() => {
     const fetchStudentCounts = async () => {
+      setLoading(true)
       try {
-        const response = await studentAPI.getStudents()
+        const response = await studentAPI.getStudents(undefined, batch, spreadsheetId || undefined)
         const students = response.data as any[]
 
         // Count students per branch
         const counts: BranchCounts = {}
         PROGRAMS.forEach(program => {
-          counts[program.slug] = students.filter(student => student.branch === program.slug).length
+          counts[program.slug] = students.filter(student => (student.branch || "").toLowerCase() === program.slug.toLowerCase()).length
         })
 
         setBranchCounts(counts)
@@ -59,7 +62,7 @@ export default function Home() {
     }
 
     fetchStudentCounts()
-  }, [])
+  }, [batch, spreadsheetId])
 
   return (
     <div className="min-h-screen bg-white">
@@ -142,6 +145,11 @@ export default function Home() {
               const Icon = ICONS[program.slug] || Code
               const colorClass = COLORS[program.slug] || "bg-gray-100 text-gray-600"
               const studentCount = branchCounts[program.slug] || 0
+              
+              const batchParams = new URLSearchParams()
+              if (batch) batchParams.set("batch", batch)
+              if (spreadsheetId) batchParams.set("spreadsheetId", spreadsheetId)
+              const queryStr = batchParams.toString() ? `?${batchParams.toString()}` : ""
 
               return (
                 <div
@@ -154,7 +162,7 @@ export default function Home() {
     bg-size-[200%_200%] animate-gradient-move"
                 >
                   <div onClick={() => {
-                    window.location.href = `/branch/${program.slug}`;
+                    window.location.href = `/branch/${program.slug}${queryStr}`;
                   }} className="p-8 flex flex-col h-full">
                     <div className="flex justify-between items-start mb-6">
                       <div className={`p-4 rounded-xl ${colorClass}`}>
@@ -178,7 +186,7 @@ export default function Home() {
                     </div>
 
                     <Link
-                      href={`/branch/${program.slug}`}
+                      href={`/branch/${program.slug}${queryStr}`}
                       className="w-full py-3 rounded-xl bg-white border border-gray-200 text-gray-700 font-medium hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all text-center"
                     >
                       View Students

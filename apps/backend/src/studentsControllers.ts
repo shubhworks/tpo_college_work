@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
-import { getSheetsClient, getDriveClient } from "./googleClient";
+import { getSheetsClient } from "./googleClient";
 import { extractFileId } from "./lib/extractFileId";
 import { parseDriveLinks } from "./lib/parseDriveLinks";
 import { getCache, setCache } from "./cache";
+import { BATCH_CONFIGS, DEFAULT_BATCH, BatchConfig } from "./config/batches";
 
 
 function normalizeHeader(h: string) {
@@ -11,8 +12,36 @@ function normalizeHeader(h: string) {
 
 const CACHE_TTL_SECONDS = Number(process.env.CACHE_TTL_SECONDS || 300); // default 5 minutes
 
-async function loadSheetRows(sheets: any, spreadsheetId: string, force = false) {
-  const cacheKey = `sheet_${spreadsheetId}_Sheet2`;
+function getBatchConfig(req: Request): BatchConfig {
+  const batch = (req.query.batch as string) || DEFAULT_BATCH;
+  const spreadsheetId = (req.query.spreadsheetId as string) || (req.query.fileId as string);
+
+  let config = BATCH_CONFIGS[batch];
+  
+  if (!config) {
+    if (spreadsheetId) {
+      // Use 2027 structure as a template for unknown batches with a spreadsheetId
+      config = {
+        ...BATCH_CONFIGS["2027"],
+        spreadsheetId: spreadsheetId,
+      };
+    } else {
+      config = BATCH_CONFIGS[DEFAULT_BATCH];
+    }
+  } else if (spreadsheetId) {
+    config = { ...config, spreadsheetId };
+  }
+
+  // Fallback spreadsheetId from env if still empty
+  if (!config.spreadsheetId) {
+      config.spreadsheetId = process.env.SPREADSHEET_ID || "";
+  }
+
+  return config;
+}
+
+async function loadSheetRows(sheets: any, spreadsheetId: string, sheetName: string, force = false) {
+  const cacheKey = `sheet_${spreadsheetId}_${sheetName}`;
   if (!force) {
     const cached = getCache<any[]>(cacheKey);
     if (cached) return cached;
@@ -20,7 +49,7 @@ async function loadSheetRows(sheets: any, spreadsheetId: string, force = false) 
 
   const readRes = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: "Sheet2",
+    range: sheetName,
   });
 
   const rows = readRes.data.values || [];
@@ -28,34 +57,70 @@ async function loadSheetRows(sheets: any, spreadsheetId: string, force = false) 
   return rows;
 }
 
+function rowsToObjects(rows: any[]) {
+  if (rows.length === 0) return [];
+  const headersRaw = rows[0] as string[];
+  const headers = headersRaw.map(normalizeHeader);
+
+  const data = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i] as string[];
+    if (row.length === 0) continue;
+    const obj: any = {};
+    for (let j = 0; j < headers.length; j++) {
+      obj[headers[j]] = row[j] ?? "";
+    }
+    data.push(obj);
+  }
+  return data;
+}
+
+export async function getBatches(req: Request, res: Response) {
+    res.json(Object.keys(BATCH_CONFIGS));
+}
+
 export async function getAllStudents(req: Request, res: Response) {
   try {
+    const config = getBatchConfig(req);
     const sheets = await getSheetsClient();
-    const spreadsheetId = process.env.SPREADSHEET_ID!;
     const force = (req.query.force as string) === "true";
 
-    const rows = await loadSheetRows(sheets, spreadsheetId, force);
-    if (rows.length === 0) return res.json([]);
+    const rows = await loadSheetRows(sheets, config.spreadsheetId, config.registrationSheetName, force);
+    let data = rowsToObjects(rows);
 
-    const headersRaw = rows[0] as string[];
-    const headers = headersRaw.map(normalizeHeader);
+    // Merge with certifications sheet if exists for all students
+    if (config.certificationsSheetName) {
+        const certRows = await loadSheetRows(sheets, config.spreadsheetId, config.certificationsSheetName, force);
+        const certData = rowsToObjects(certRows);
+        
+        // Create a map for faster lookup
+        const certMap = new Map();
+        certData.forEach(item => {
+            const enr = String(item[config.columnMapping.sepCertEnrollment || "enrollment"] || "").toString();
+            if (enr) certMap.set(enr, item);
+        });
 
-    const data = [];
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i] as string[];
-      if (row.length === 0) continue;
-      const obj: any = {};
-      for (let j = 0; j < headers.length; j++) {
-        obj[headers[j]] = row[j] ?? "";
-      }
-      data.push(obj);
+        data = data.map(student => {
+            const enr = String(student[config.columnMapping.enrollment] || "").toString();
+            const certInfo = certMap.get(enr);
+            return certInfo ? { ...student, ...certInfo } : student;
+        });
     }
+
+    // Map fields to standard names for frontend if necessary
+    const mappedData = data.map(item => ({
+        ...item,
+        enrollment: item[config.columnMapping.enrollment] || "",
+        name: item[config.columnMapping.name] || "",
+        branch: item[config.columnMapping.branch] || "",
+        photo: item[config.columnMapping.photo] || "",
+    }));
 
     // optional: filter by branch query param
     const branchQ = (req.query.branch as string) || "";
-    let filtered = data;
+    let filtered = mappedData;
     if (branchQ) {
-      filtered = data.filter(
+      filtered = mappedData.filter(
         (s: any) => (s.branch || "").toLowerCase() === branchQ.toLowerCase()
       );
     }
@@ -70,25 +135,43 @@ export async function getAllStudents(req: Request, res: Response) {
 export async function getStudentByEnrollment(req: Request, res: Response) {
   try {
     const enrollment = req.params.enrollment;
+    const config = getBatchConfig(req);
     const sheets = await getSheetsClient();
-    const spreadsheetId = process.env.SPREADSHEET_ID!;
     const force = (req.query.force as string) === "true";
-    const rows = await loadSheetRows(sheets, spreadsheetId, force);
-    if (rows.length === 0) return res.status(404).json({});
+    
+    const rows = await loadSheetRows(sheets, config.spreadsheetId, config.registrationSheetName, force);
+    const data = rowsToObjects(rows);
 
-    const headersRaw = rows[0] as string[];
-    const headers = headersRaw.map(normalizeHeader);
+    let student = data.find(s => String(s[config.columnMapping.enrollment] || "").toString() === enrollment);
 
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i] as string[];
-      const obj: any = {};
-      for (let j = 0; j < headers.length; j++) obj[headers[j]] = row[j] ?? "";
-      if ((obj.university_enrolment_number || "").toString() === enrollment) {
-        return res.json(obj);
-      }
+    if (!student) return res.status(404).json({ error: "Student not found" });
+
+    // Merge with certifications sheet if exists
+    if (config.certificationsSheetName) {
+        const certRows = await loadSheetRows(sheets, config.spreadsheetId, config.certificationsSheetName, force);
+        const certData = rowsToObjects(certRows);
+        const studentCertsInfo = certData.find(s => String(s[config.columnMapping.sepCertEnrollment || "enrollment"] || "").toString() === enrollment);
+        if (studentCertsInfo) {
+            student = { ...student, ...studentCertsInfo };
+        }
     }
 
-    res.status(404).json({ error: "Student not found" });
+    // Standardize fields
+    const standardizedStudent = {
+        ...student,
+        enrollment: student[config.columnMapping.enrollment],
+        name: student[config.columnMapping.name],
+        branch: student[config.columnMapping.branch],
+        photo: student[config.columnMapping.photo],
+        //@ts-ignore
+        linkedin: student[config.columnMapping.linkedin],
+        //@ts-ignore
+        github: student[config.columnMapping.github],
+        //@ts-ignore
+        resume: student[config.columnMapping.resume],
+    };
+
+    res.json(standardizedStudent);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to read sheet" });
@@ -98,151 +181,118 @@ export async function getStudentByEnrollment(req: Request, res: Response) {
 export async function getStudentCertificates(req: Request, res: Response) {
   try {
     const enrollment = req.params.enrollment;
+    const config = getBatchConfig(req);
     const sheets = await getSheetsClient();
-    const spreadsheetId = process.env.SPREADSHEET_ID!;
     const force = (req.query.force as string) === "true";
-    const rows = await loadSheetRows(sheets, spreadsheetId, force);
-    if (rows.length === 0) return res.json([]);
+    
+    let certSourceObj: any = null;
 
-    const headers = rows[0].map((h: string) => normalizeHeader(h));
-
-    const uploadField1 = "upload_certificate";
-    const uploadField2 = "upload_more_if_you_have";
-
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      const obj: any = {};
-
-      headers.forEach((h: string, idx: number) => {
-        obj[h] = row[idx] ?? "";
-      });
-
-      if ((obj.university_enrolment_number || "").toString() === enrollment) {
-        // 🔥 PERMANENT FIX HERE
-        const links1 = parseDriveLinks(obj[uploadField1]);
-        const links2 = parseDriveLinks(obj[uploadField2]);
-
-        const allLinks = [...links1, ...links2];
-
-        const certs = allLinks
-          .map((url) => {
-            const match = url.match(/id=([^&]+)/) || url.match(/\/d\/([^/]+)/);
-            if (!match) return null;
-
-            const fileId = match[1];
-
-            return {
-              id: fileId,
-              name: `Certificate-${fileId}`,
-              mimeType: "application/pdf",
-              webViewLink: `https://drive.google.com/file/d/${fileId}/view`,
-              webContentLink: `https://drive.google.com/uc?export=download&id=${fileId}`,
-            };
-          })
-          .filter(Boolean); // remove nulls
-
-        return res.json(certs);
-      }
+    if (config.certificationsSheetName) {
+        const rows = await loadSheetRows(sheets, config.spreadsheetId, config.certificationsSheetName, force);
+        const data = rowsToObjects(rows);
+        certSourceObj = data.find(s => String(s[config.columnMapping.sepCertEnrollment || "enrollment"] || "").toString() === enrollment);
+    } else {
+        const rows = await loadSheetRows(sheets, config.spreadsheetId, config.registrationSheetName, force);
+        const data = rowsToObjects(rows);
+        certSourceObj = data.find(s => String(s[config.columnMapping.enrollment] || "").toString() === enrollment);
     }
 
-    return res.json([]);
+    if (!certSourceObj) return res.json([]);
+
+    const certs: any[] = [];
+
+    // Handle same-sheet certs (2026 style)
+    if (config.columnMapping.certLinks) {
+        const allLinks: string[] = [];
+        config.columnMapping.certLinks.forEach(field => {
+            allLinks.push(...parseDriveLinks(certSourceObj[field]));
+        });
+
+        allLinks.forEach((url) => {
+            const match = url.match(/id=([^&]+)/) || url.match(/\/d\/([^/]+)/);
+            if (match) {
+                const fileId = match[1];
+                certs.push({
+                    id: fileId,
+                    name: `Certificate-${fileId}`,
+                    mimeType: "application/pdf",
+                    webViewLink: `https://drive.google.com/file/d/${fileId}/view`,
+                    webContentLink: `https://drive.google.com/uc?export=download&id=${fileId}`,
+                });
+            }
+        });
+    }
+
+    // Handle separate sheet certs (2027 style)
+    if (config.columnMapping.sepCertLinksPrefix && config.columnMapping.sepCertCount) {
+        for (let i = 1; i <= config.columnMapping.sepCertCount; i++) {
+            const linkField = `${config.columnMapping.sepCertLinksPrefix}${i}_link`;
+            const nameField = `${config.columnMapping.sepCertNamesPrefix}${i}_name`;
+            
+            const link = certSourceObj[linkField];
+            const name = certSourceObj[nameField] || `Certificate ${i}`;
+
+            if (link) {
+                const match = link.match(/id=([^&]+)/) || link.match(/\/d\/([^/]+)/) || link.match(/id=([^&]+)/);
+                const fileId = match ? match[1] : extractFileId(link);
+                
+                if (fileId) {
+                    certs.push({
+                        id: fileId,
+                        name: name,
+                        mimeType: "application/pdf",
+                        webViewLink: `https://drive.google.com/file/d/${fileId}/view`,
+                        webContentLink: `https://drive.google.com/uc?export=download&id=${fileId}`,
+                    });
+                } else if (link.startsWith("http")) {
+                     // Fallback for non-drive links if any
+                     certs.push({
+                        id: `ext-${i}`,
+                        name: name,
+                        webViewLink: link,
+                    });
+                }
+            }
+        }
+    }
+
+    return res.json(certs);
   } catch (err) {
     console.error("Error fetching certificates:", err);
     res.status(500).json({ error: "Failed to list certs" });
   }
 }
 
-
-// export async function getStudentCertificates(req: Request, res: Response) {
-//   try {
-//     const enrollment = req.params.enrollment;
-//     const sheets = await getSheetsClient();
-//     const spreadsheetId = process.env.SPREADSHEET_ID!;
-
-//     const readRes = await sheets.spreadsheets.values.get({
-//       spreadsheetId,
-//       range: "Sheet2", // CHANGE to your sheet tab name
-//     });
-
-//     const rows = readRes.data.values || [];
-//     const headers = rows[0].map((h: string) =>
-//       h.trim().toLowerCase().replace(/\s+/g, "_")
-//     );
-
-//     const uploadField1 = "upload_certificate";
-//     const uploadField2 = "upload_more_if_you_have";
-
-//     const certs: any[] = [];
-
-//     for (let i = 1; i < rows.length; i++) {
-//       const row = rows[i];
-//       const obj: any = {};
-
-//       headers.forEach((h: string, idx: number) => {
-//         obj[h] = row[idx] || "";
-//       });
-
-//       if (obj.university_enrolment_number === enrollment) {
-//         const links1 = obj[uploadField1] ? obj[uploadField1].split(",") : [];
-//         const links2 = obj[uploadField2] ? obj[uploadField2].split(",") : [];
-//         const allLinks = [...links1, ...links2];
-
-//         allLinks.forEach((url) => {
-//           const match = url.match(/id=([^&]+)/);
-//           if (!match) return;
-
-//           const fileId = match[1];
-
-//           certs.push({
-//             id: fileId,
-//             name: `Certificate-${fileId}.pdf`,
-//             mimeType: "application/pdf",
-//             webViewLink: `https://drive.google.com/file/d/${fileId}/view`,
-//             webContentLink: `https://drive.google.com/uc?export=download&id=${fileId}`,
-//           });
-//         });
-
-//         return res.json(certs);
-//       }
-//     }
-
-//     res.json([]);
-//   } catch (err) {
-//     console.error("Error fetching certificates:", err);
-//     res.status(500).json({ error: "Failed to list certs" });
-//   }
-// }
-
 export async function getImageFileID(req: Request, res: Response) {
   try {
     const enrollment = req.params.enrollment;
+    const config = getBatchConfig(req);
     const sheets = await getSheetsClient();
-    const spreadsheetId = process.env.SPREADSHEET_ID!;
     const force = (req.query.force as string) === "true";
-    const rows = await loadSheetRows(sheets, spreadsheetId, force);
-    if (rows.length === 0) return res.status(404).json({});
+    
+    let sourceObj: any = null;
 
-    const headersRaw = rows[0] as string[];
-    const headers = headersRaw.map(normalizeHeader);
-
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i] as string[];
-      const obj: any = {};
-
-      for (let j = 0; j < headers.length; j++) {
-        obj[headers[j]] = row[j] ?? "";
-      }
-
-      if ((obj.university_enrolment_number || "").toString() === enrollment) {
-        const fileId = extractFileId(
-          obj.upload_your_latest_professional_photo
-        );
-
-        return res.json({ fileid: fileId });
-      }
+    if (config.certificationsSheetName) {
+        const rows = await loadSheetRows(sheets, config.spreadsheetId, config.certificationsSheetName, force);
+        const data = rowsToObjects(rows);
+        sourceObj = data.find(s => String(s[config.columnMapping.sepCertEnrollment || "enrollment"] || "").toString() === enrollment);
+    } else {
+        const rows = await loadSheetRows(sheets, config.spreadsheetId, config.registrationSheetName, force);
+        const data = rowsToObjects(rows);
+        sourceObj = data.find(s => String(s[config.columnMapping.enrollment] || "").toString() === enrollment);
     }
 
-    return res.status(404).json({});
+    if (sourceObj) {
+      const photoVal = sourceObj[config.columnMapping.photo];
+      const fileId = extractFileId(photoVal);
+      if (fileId) {
+          return res.json({ fileid: fileId });
+      }
+      // If it's already a direct link or something else, handle it?
+      // For now, extractFileId handles most drive links
+    }
+
+    return res.status(404).json({ error: "Image not found" });
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -250,3 +300,4 @@ export async function getImageFileID(req: Request, res: Response) {
     });
   }
 }
+

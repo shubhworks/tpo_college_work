@@ -6,6 +6,7 @@ import { Menu, X, GraduationCap } from "lucide-react"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
+import { BatchSelector } from "./batch-selector"
 
 const NAV_ITEMS = [
   { name: "Home", href: "/" },
@@ -64,6 +65,7 @@ export function Navbar() {
                 </Link>
               ))}
             </div>
+            <BatchSelector />
           </div>
 
           {/* Mobile menu button */}

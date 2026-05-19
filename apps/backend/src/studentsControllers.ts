@@ -110,9 +110,15 @@ export async function getAllStudents(req: Request, res: Response) {
     // Map fields to standard names for frontend if necessary
     const mappedData = data.map(item => ({
         ...item,
-        enrollment: item[config.columnMapping.enrollment] || "",
+        university_enrolment_number: item[config.columnMapping.enrollment] || "",
         name: item[config.columnMapping.name] || "",
         branch: item[config.columnMapping.branch] || "",
+        upload_your_latest_professional_photo: item[config.columnMapping.photo] || "",
+        linkedin_profile_link: (config.columnMapping.linkedin ? item[config.columnMapping.linkedin] : "") || item.linkedin_profile_link || "",
+        github_profile_link: (config.columnMapping.github ? item[config.columnMapping.github] : "") || item.github_profile_link || "",
+        latest_resume_link: (config.columnMapping.resume ? item[config.columnMapping.resume] : "") || item.latest_resume_link || "",
+        // Also keep these for any internal use or different frontend versions
+        enrollment: item[config.columnMapping.enrollment] || "",
         photo: item[config.columnMapping.photo] || "",
     }));
 
@@ -159,16 +165,19 @@ export async function getStudentByEnrollment(req: Request, res: Response) {
     // Standardize fields
     const standardizedStudent = {
         ...student,
-        enrollment: student[config.columnMapping.enrollment],
+        university_enrolment_number: student[config.columnMapping.enrollment],
         name: student[config.columnMapping.name],
         branch: student[config.columnMapping.branch],
+        upload_your_latest_professional_photo: student[config.columnMapping.photo],
+        linkedin_profile_link: (config.columnMapping.linkedin ? student[config.columnMapping.linkedin] : "") || student.linkedin_profile_link,
+        github_profile_link: (config.columnMapping.github ? student[config.columnMapping.github] : "") || student.github_profile_link,
+        latest_resume_link: (config.columnMapping.resume ? student[config.columnMapping.resume] : "") || student.latest_resume_link,
+        // Keep these for internal use
+        enrollment: student[config.columnMapping.enrollment],
         photo: student[config.columnMapping.photo],
-        //@ts-ignore
-        linkedin: student[config.columnMapping.linkedin],
-        //@ts-ignore
-        github: student[config.columnMapping.github],
-        //@ts-ignore
-        resume: student[config.columnMapping.resume],
+        linkedin: config.columnMapping.linkedin ? student[config.columnMapping.linkedin] : undefined,
+        github: config.columnMapping.github ? student[config.columnMapping.github] : undefined,
+        resume: config.columnMapping.resume ? student[config.columnMapping.resume] : undefined,
     };
 
     res.json(standardizedStudent);

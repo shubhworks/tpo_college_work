@@ -15,6 +15,14 @@ export function BranchSelector() {
   const [isOpen, setIsOpen] = useState(false)
   const { batch, spreadsheetId } = useBatch()
 
+  const filteredPrograms = PROGRAMS.filter(program => {
+    // Show AI&DS and MCA only for 2027 batch as requested
+    if (program.slug === 'AI&DS' || program.slug === 'MCA') {
+      return batch === '2027'
+    }
+    return true
+  })
+
   const getBranchDisplayName = (slug: string) => {
     const program = PROGRAMS.find(p => p.slug === slug)
     return program?.title || slug
@@ -34,7 +42,7 @@ export function BranchSelector() {
         <div className="flex items-center justify-between">
           {/* Desktop View - Horizontal Scroll */}
           <div className="hidden md:flex items-center space-x-2 overflow-x-auto pb-1">
-            {PROGRAMS.map((program) => (
+            {filteredPrograms.map((program) => (
               <Link
                 key={program.slug}
                 href={getLink(program.slug)}
@@ -72,7 +80,7 @@ export function BranchSelector() {
                   exit={{ opacity: 0, y: -10 }}
                   className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto"
                 >
-                  {PROGRAMS.map((program) => (
+                  {filteredPrograms.map((program) => (
                     <Link
                       key={program.slug}
                       href={getLink(program.slug)}

@@ -85,6 +85,20 @@ export const PROGRAMS: Program[] = [
     description: "Structural engineering, construction management, and infrastructure development",
     duration: "4 years",
   },
+  {
+    id: "13",
+    title: "Artificial Intelligence and Data Science",
+    slug: "AI&DS",
+    description: "Specialized program combining AI and Data Science to solve complex real-world problems",
+    duration: "4 years",
+  },
+  {
+    id: "14",
+    title: "Masters in Computer Application",
+    slug: "MCA",
+    description: "Postgraduate program focused on advanced computer applications and software development",
+    duration: "2 years",
+  },
 ]
 
 export const MOCK_STUDENTS: Student[] = [

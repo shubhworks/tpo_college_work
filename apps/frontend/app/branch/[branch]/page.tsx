@@ -88,7 +88,9 @@ export default function BranchPage() {
       'EE': 'Electrical Engineering',
       'EX': 'Embedded Systems',
       'ME': 'Mechanical Engineering',
-      'CE': 'Civil Engineering'
+      'CE': 'Civil Engineering',
+      'AI&DS': 'Artificial Intelligence and Data Science',
+      'MCA': 'Masters in Computer Application'
     }
     return branchNames[branch] || branch
   }

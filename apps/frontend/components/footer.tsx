@@ -1,5 +1,6 @@
-import { GraduationCap, MapPin, Phone, Mail } from "lucide-react"
+import { MapPin, Phone, Mail } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 
 export function Footer() {
   return (
@@ -47,24 +48,24 @@ export function Footer() {
             <h3 className="text-white font-semibold text-lg">Quick Links</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="/" className="hover:text-white transition-colors">
+                <Link href="/" className="hover:text-white transition-colors">
                   Home
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/about" className="hover:text-white transition-colors">
+                <Link href="/about" className="hover:text-white transition-colors">
                   About Us
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/tp-cell" className="hover:text-white transition-colors">
+                <Link href="/tp-cell" className="hover:text-white transition-colors">
                   T&P Cell
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/contact" className="hover:text-white transition-colors">
+                <Link href="/contact" className="hover:text-white transition-colors">
                   Contact
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

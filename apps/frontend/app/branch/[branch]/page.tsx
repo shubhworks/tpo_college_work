@@ -29,10 +29,15 @@ export default function BranchPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
+    let isMounted = true;
     const fetchStudents = async () => {
       try {
         setLoading(true)
+        setStudents([]) // Clear previous students to avoid showing stale data
         const response = await studentAPI.getStudents(branch, batch, spreadsheetId || undefined)
+        
+        if (!isMounted) return;
+
         // Filter students by branch if the API doesn't do it automatically
         const allStudents = response.data as Student[]
         const branchStudents = allStudents.filter(student => 
@@ -43,12 +48,15 @@ export default function BranchPage() {
         setStudents(branchStudents)
       } catch (error) {
         console.error("Failed to fetch students", error)
-        setStudents([])
+        if (isMounted) setStudents([])
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
     fetchStudents()
+    return () => {
+      isMounted = false
+    }
   }, [branch, batch, spreadsheetId])
 
   const filteredStudents = useMemo(() => {

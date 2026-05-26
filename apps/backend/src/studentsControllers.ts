@@ -82,8 +82,25 @@ export async function getBatches(req: Request, res: Response) {
 export async function getAllStudents(req: Request, res: Response) {
   try {
     const config = getBatchConfig(req);
+    const batch = (req.query.batch as string) || DEFAULT_BATCH;
     const sheets = await getSheetsClient();
     const force = (req.query.force as string) === "true";
+
+    const cacheKey = `processed_students_${config.spreadsheetId}_${batch}`;
+    if (!force) {
+      const cached = getCache<any[]>(cacheKey);
+      if (cached) {
+        // Apply branch filter if present even on cached data
+        const branchQ = (req.query.branch as string) || "";
+        let filtered = cached;
+        if (branchQ) {
+          filtered = cached.filter(
+            (s: any) => (s.branch || "").toLowerCase() === branchQ.toLowerCase()
+          );
+        }
+        return res.json(filtered);
+      }
+    }
 
     const rows = await loadSheetRows(sheets, config.spreadsheetId, config.registrationSheetName, force);
     let data = rowsToObjects(rows);
@@ -122,6 +139,9 @@ export async function getAllStudents(req: Request, res: Response) {
         photo: item[config.columnMapping.photo] || "",
     }));
 
+    // Cache the fully mapped data
+    setCache(cacheKey, mappedData, CACHE_TTL_SECONDS);
+
     // optional: filter by branch query param
     const branchQ = (req.query.branch as string) || "";
     let filtered = mappedData;
@@ -142,9 +162,18 @@ export async function getStudentByEnrollment(req: Request, res: Response) {
   try {
     const enrollment = req.params.enrollment;
     const config = getBatchConfig(req);
-    const sheets = await getSheetsClient();
+    const batch = (req.query.batch as string) || DEFAULT_BATCH;
     const force = (req.query.force as string) === "true";
     
+    // Try to get from processed students cache first
+    const studentsCacheKey = `processed_students_${config.spreadsheetId}_${batch}`;
+    const cachedStudents = getCache<any[]>(studentsCacheKey);
+    if (cachedStudents && !force) {
+        const student = cachedStudents.find(s => String(s.university_enrolment_number || "").toString() === enrollment);
+        if (student) return res.json(student);
+    }
+
+    const sheets = await getSheetsClient();
     const rows = await loadSheetRows(sheets, config.spreadsheetId, config.registrationSheetName, force);
     const data = rowsToObjects(rows);
 
@@ -276,9 +305,32 @@ export async function getImageFileID(req: Request, res: Response) {
   try {
     const enrollment = req.params.enrollment;
     const config = getBatchConfig(req);
-    const sheets = await getSheetsClient();
+    const batch = (req.query.batch as string) || DEFAULT_BATCH;
     const force = (req.query.force as string) === "true";
+
+    const cacheKey = `image_id_${config.spreadsheetId}_${batch}_${enrollment}`;
+    if (!force) {
+      const cached = getCache<{fileid: string}>(cacheKey);
+      if (cached) return res.json(cached);
+    }
     
+    // Check if we can find it in the processed students cache first to avoid re-reading sheet
+    const studentsCacheKey = `processed_students_${config.spreadsheetId}_${batch}`;
+    const cachedStudents = getCache<any[]>(studentsCacheKey);
+    if (cachedStudents && !force) {
+        const student = cachedStudents.find(s => String(s.university_enrolment_number || "").toString() === enrollment);
+        if (student) {
+            const photoVal = student.upload_your_latest_professional_photo || student[config.columnMapping.photo];
+            const fileId = extractFileId(photoVal);
+            if (fileId) {
+                const result = { fileid: fileId };
+                setCache(cacheKey, result, CACHE_TTL_SECONDS);
+                return res.json(result);
+            }
+        }
+    }
+
+    const sheets = await getSheetsClient();
     let sourceObj: any = null;
 
     if (config.certificationsSheetName) {
@@ -295,10 +347,10 @@ export async function getImageFileID(req: Request, res: Response) {
       const photoVal = sourceObj[config.columnMapping.photo];
       const fileId = extractFileId(photoVal);
       if (fileId) {
-          return res.json({ fileid: fileId });
+          const result = { fileid: fileId };
+          setCache(cacheKey, result, CACHE_TTL_SECONDS);
+          return res.json(result);
       }
-      // If it's already a direct link or something else, handle it?
-      // For now, extractFileId handles most drive links
     }
 
     return res.status(404).json({ error: "Image not found" });

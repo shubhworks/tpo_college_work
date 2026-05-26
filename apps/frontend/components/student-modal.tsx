@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
-import { Github, Linkedin, Code2, Mail, Phone, FileText, Download, X, GraduationCap, Building2 } from "lucide-react"
+import { Github, Linkedin, Code2, Mail, FileText, Download, X, GraduationCap, Building2 } from "lucide-react"
 import { studentAPI } from "@/lib/api"
 import type { Student, Certificate } from "@/types/student"
 import { CertGallery } from "./cert-gallery"
@@ -25,6 +25,7 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
 
   // fetching the image's fileid
   useEffect(() => {
+    let isMounted = true;
     async function fetchFile() {
       if (!student) return;
       try {
@@ -35,15 +36,21 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
         
         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/image/${studentEnrollment}?${params.toString()}`);
         const data = await res.json();
-        setFileId(data.fileid || null);
+        if (isMounted) {
+            setFileId(data.fileid || null);
+        }
       } catch (error) {
         console.error("Error fetching fileId:", error);
       }
     }
     fetchFile();
+    return () => {
+        isMounted = false;
+    };
   }, [student, batch, spreadsheetId]);
 
   useEffect(() => {
+    let isMounted = true;
     if (isOpen && enrollment) {
       const fetchData = async () => {
         setLoading(true)
@@ -52,16 +59,21 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
             studentAPI.getStudent(enrollment, batch, spreadsheetId || undefined),
             studentAPI.getStudentCerts(enrollment, batch, spreadsheetId || undefined),
           ])
-          setStudent(studentRes.data || null)
-          setCertificates(certsRes.data || [])
+          if (isMounted) {
+              setStudent(studentRes.data || null)
+              setCertificates(certsRes.data || [])
+          }
         } catch (error) {
           console.error("Error fetching data", error)
         } finally {
-          setLoading(false)
+          if (isMounted) setLoading(false)
         }
       }
       fetchData()
     }
+    return () => {
+        isMounted = false;
+    };
   }, [isOpen, enrollment, batch, spreadsheetId])
 
   if (!isOpen) return null

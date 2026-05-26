@@ -17,6 +17,7 @@ export function StudentCard({ student, onOpenProfile }: StudentCardProps) {
   const [fileId, setFileId] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     async function fetchFile() {
       try {
         const studentEnrollment = student.university_enrolment_number;
@@ -26,12 +27,17 @@ export function StudentCard({ student, onOpenProfile }: StudentCardProps) {
 
         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/image/${studentEnrollment}?${params.toString()}`);
         const data = await res.json();
-        setFileId(data.fileid || null);
+        if (isMounted) {
+            setFileId(data.fileid || null);
+        }
       } catch (error) {
         console.error("Error fetching fileId:", error);
       }
     }
     fetchFile();
+    return () => {
+        isMounted = false;
+    };
   }, [student.university_enrolment_number, batch, spreadsheetId]);
 
   const studentEnrollment = student.university_enrolment_number;

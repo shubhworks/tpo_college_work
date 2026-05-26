@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Calendar, Users, MapPin, Globe, Code, Database, BrainCircuit } from "lucide-react"
+import { Calendar, Users, MapPin, Globe, Code, Database } from "lucide-react"
 import { PROGRAMS } from "@/lib/mock-data"
 import { Footer } from "@/components/footer"
 import { studentAPI } from "@/lib/api"
 import { Navbar } from "@/components/Navbar"
 import { useBatch } from "@/context/batch-context"
+import type { Student } from "@/types/student"
+
+import type { LucideIcon } from "lucide-react"
 
 // Icon mapping for programs
-const ICONS: Record<string, any> = {
+const ICONS: Record<string, LucideIcon> = {
   CSE: Code,
-  "CSE-AIML": BrainCircuit,
+  "CSE-AIML": Database,
   "CSE-DS": Database,
 }
 
@@ -33,11 +36,14 @@ export default function Home() {
   const [totalPrograms, setTotalPrograms] = useState(0)
 
   useEffect(() => {
+    let isMounted = true;
     const fetchStudentCounts = async () => {
       setLoading(true)
       try {
         const response = await studentAPI.getStudents(undefined, batch, spreadsheetId || undefined)
-        const students = response.data as any[]
+        if (!isMounted) return;
+        
+        const students = response.data as Student[]
 
         // Count students per branch
         const counts: BranchCounts = {}
@@ -49,19 +55,24 @@ export default function Home() {
         setTotalPrograms(PROGRAMS.length)
       } catch (error) {
         console.error("Failed to fetch student counts:", error)
-        // Set default counts if API fails
-        const defaultCounts: BranchCounts = {}
-        PROGRAMS.forEach(program => {
-          defaultCounts[program.slug] = 0
-        })
-        setBranchCounts(defaultCounts)
-        setTotalPrograms(PROGRAMS.length)
+        if (isMounted) {
+            // Set default counts if API fails
+            const defaultCounts: BranchCounts = {}
+            PROGRAMS.forEach(program => {
+                defaultCounts[program.slug] = 0
+            })
+            setBranchCounts(defaultCounts)
+            setTotalPrograms(PROGRAMS.length)
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
 
     fetchStudentCounts()
+    return () => {
+        isMounted = false;
+    };
   }, [batch, spreadsheetId])
 
   return (

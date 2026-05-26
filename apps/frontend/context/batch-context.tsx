@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext } from "react";
 import { useSearchParams } from "next/navigation";
 
 interface BatchContextType {
@@ -14,24 +14,17 @@ const BatchContext = createContext<BatchContextType | undefined>(undefined);
 
 export function BatchProvider({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
-  const [batch, setBatchState] = useState("2026");
-  const [spreadsheetId, setSpreadsheetIdState] = useState<string | null>(null);
+  
+  const batch = searchParams.get("batch") || "2026";
+  const spreadsheetId = searchParams.get("spreadsheetId") || searchParams.get("fileId");
 
-  useEffect(() => {
-    const b = searchParams.get("batch");
-    const s = searchParams.get("spreadsheetId") || searchParams.get("fileId");
-    
-    if (b) setBatchState(b);
-    if (s) setSpreadsheetIdState(s);
-  }, [searchParams]);
-
-  const setBatch = (newBatch: string) => {
-    setBatchState(newBatch);
-    // Optionally update URL or local storage
+  const setBatch = (_newBatch: string) => {
+    // In this implementation, batch is derived from the URL.
+    // Component should use router.push to update the batch.
   };
 
-  const setSpreadsheetId = (id: string | null) => {
-    setSpreadsheetIdState(id);
+  const setSpreadsheetId = (_id: string | null) => {
+    // Similarly for spreadsheetId
   };
 
   return (

@@ -10,7 +10,7 @@
  
 # The batch-switching glitches and caching issues Fixed!
 
-## Backend Optimizations (apps/backend)
+## Backend Optimizations
 * Multi-Level Caching: Implemented a more robust caching strategy in studentsControllers.ts.
     * Processed Data Cache: The backend now caches the fully mapped and standardized student list for each batch, avoiding redundant processing on every request.
 🛠️ Frontend Stability & UX (apps/frontend)

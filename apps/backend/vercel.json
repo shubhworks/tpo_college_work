@@ -1,18 +1,7 @@
 {
     "version": 2,
-    "builds": [{ "src": "src/index.ts", "use": "@vercel/node" }],
-    "routes": [
-        {
-            "src": "/(.*)",
-            "dest": "src/index.ts",
-            "headers": {
-                "Access-Control-Allow-Origin": "https://tpoportal.vercel.app",
-                "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,Cookie,X-Requested-With,Accept",
-                "Access-Control-Allow-Credentials": "true"
-            }
-        }
-    ],
+    "builds": [{ "src": "apps/backend/src/index.ts", "use": "@vercel/node" }],
+    "routes": [{ "src": "/(.*)", "dest": "apps/backend/src/index.ts" }],
     "env": {
         "NODE_ENV": "production"
     }

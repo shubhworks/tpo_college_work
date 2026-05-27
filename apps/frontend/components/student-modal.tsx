@@ -29,15 +29,9 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
     async function fetchFile() {
       if (!student) return;
       try {
-        const studentEnrollment = student.university_enrolment_number;
-        const params = new URLSearchParams();
-        if (batch) params.set("batch", batch);
-        if (spreadsheetId) params.set("spreadsheetId", spreadsheetId);
-        
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/image/${studentEnrollment}?${params.toString()}`);
-        const data = await res.json();
+        const response = await studentAPI.getImage(student.university_enrolment_number, batch, spreadsheetId || undefined);
         if (isMounted) {
-            setFileId(data.fileid || null);
+            setFileId(response.data.fileid || null);
         }
       } catch (error) {
         console.error("Error fetching fileId:", error);

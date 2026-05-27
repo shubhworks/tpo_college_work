@@ -18,13 +18,39 @@ dotenv.config();
 
 const app = express();
 
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://tpoportal.vercel.app',
+];
+
+if (process.env.CORS_ORIGIN) {
+    const origins = process.env.CORS_ORIGIN.split(',').map(o => o.trim());
+    allowedOrigins.push(...origins);
+}
+
 const corsOptions = {
-    origin: [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'https://tpoportal.vercel.app',
-    ],
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        const isAllowed = allowedOrigins.some(ao => {
+            if (ao === '*') return true;
+            if (ao === origin) return true;
+            if (ao.startsWith('*.') && origin.endsWith(ao.slice(2))) return true;
+            return false;
+        });
+
+        if (isAllowed) {
+            callback(null, true);
+        } else {
+            console.log(`CORS blocked for origin: ${origin}`);
+            callback(null, false);
+        }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
     optionsSuccessStatus: 200
 };
 

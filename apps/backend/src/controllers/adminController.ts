@@ -42,13 +42,7 @@ export const listTokens = async (req: Request, res: Response) => {
             orderBy: { createdAt: 'desc' }
         });
 
-        // Mask tokens for security: abc1...xyz
-        const maskedTokens = tokens.map((t: any) => ({
-            ...t,
-            token: `${t.token.substring(0, 4)}...${t.token.substring(t.token.length - 4)}`
-        }));
-
-        return res.json(maskedTokens);
+        return res.json(tokens);
     } catch (error) {
         console.error("List tokens error:", error);
         return res.status(500).json({ error: "Internal server error." });

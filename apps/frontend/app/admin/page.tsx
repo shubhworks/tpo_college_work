@@ -9,12 +9,12 @@ import {
   ShieldCheck, 
   Clock, 
   Activity,
-  User,
   ShieldAlert,
   Calendar,
-  EyeOff,
-  Trash2
+  Trash2,
+  ExternalLink
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/footer';
 
@@ -229,7 +229,7 @@ export default function AdminPage() {
                       {copySuccess === newTokenData.token ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </button>
                   </div>
-                  <p className="text-[10px] text-gray-500 mt-2 italic">Copy this now. You won't see the full token again.</p>
+                  <p className="text-[10px] text-gray-500 mt-2 italic">Link generated successfully. You can also copy it from the list below anytime.</p>
                 </div>
               )}
             </div>
@@ -263,7 +263,9 @@ export default function AdminPage() {
                           <td className="px-6 py-4">
                             <div className="flex flex-col">
                               <span className="text-sm font-medium text-white">{token.label}</span>
-                              <span className="text-xs text-gray-500 font-mono">{token.token}</span>
+                              <span className="text-xs text-gray-500 font-mono">
+                                {token.token.substring(0, 4)}...{token.token.substring(token.token.length - 4)}
+                              </span>
                             </div>
                           </td>
                           <td className="px-6 py-4">
@@ -296,19 +298,15 @@ export default function AdminPage() {
                             <div className="flex justify-end gap-2">
                               {active && (
                                 <button
-                                  onClick={() => copyToClipboard(token.id)} // id is used as key here but we need the full token which is not available in list
-                                  // Wait, in list we only have masked token. Copying from table only works if we store full token or regenerate?
-                                  // Actually TASK.md says: Copy Link button (copies full URL with ?token=...)
-                                  // But backend only returns masked token in list.
-                                  // I'll make the copy button only work for the newly created one, or I need to return full token in list (less secure)
-                                  // For now, I'll make the copy button just show an alert that full token is only shown once.
-                                  // OR, I can use the id to fetch the full token if needed, but that's more work.
-                                  // Let's assume the user only needs to copy it once upon creation.
-                                  className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white"
-                                  title="Full token only visible once on creation"
-                                  disabled
+                                  onClick={() => copyToClipboard(token.token)}
+                                  className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-blue-400 transition-colors"
+                                  title="Copy Access Link"
                                 >
-                                  <EyeOff className="w-4 h-4" />
+                                  {copySuccess === token.token ? (
+                                    <Check className="w-4 h-4 text-green-500" />
+                                  ) : (
+                                    <Copy className="w-4 h-4" />
+                                  )}
                                 </button>
                               )}
                               {token.isActive && (
@@ -338,6 +336,23 @@ export default function AdminPage() {
         </div>
       </main>
       
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {copySuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: 20, x: '-50%' }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 z-50 border border-blue-500 min-w-[300px] justify-center"
+          >
+            <div className="bg-white/20 p-1 rounded-lg">
+              <Check className="w-4 h-4" />
+            </div>
+            <span className="font-medium text-sm">Link copied to clipboard!</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Footer />
     </div>
   );

@@ -89,4 +89,4 @@ export const BATCH_CONFIGS: Record<string, BatchConfig> = {
   }
 };
 
-export const DEFAULT_BATCH = "2026";
+export const DEFAULT_BATCH = "2027";

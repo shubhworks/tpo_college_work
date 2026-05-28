@@ -15,7 +15,7 @@ const BatchContext = createContext<BatchContextType | undefined>(undefined);
 export function BatchProvider({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   
-  const batch = searchParams.get("batch") || "2026";
+  const batch = searchParams.get("batch") || "2027";
   const spreadsheetId = searchParams.get("spreadsheetId") || searchParams.get("fileId");
 
   const setBatch = (_newBatch: string) => {

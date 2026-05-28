@@ -32,6 +32,7 @@ export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [password, setPassword] = useState('');
   const [tokens, setTokens] = useState<AccessToken[]>([]);
+  const [tokensLoading, setTokensLoading] = useState(false);
   const [label, setLabel] = useState('');
   const [expiry, setExpiry] = useState('7d');
   const [loading, setLoading] = useState(false);
@@ -40,11 +41,14 @@ export default function AdminPage() {
   const [newTokenData, setNewTokenData] = useState<{ label: string, token: string } | null>(null);
 
   const fetchTokens = useCallback(async () => {
+    setTokensLoading(true);
     try {
       const response = await adminAPI.getTokens();
       setTokens(response.data);
     } catch (err) {
       console.error('Failed to fetch tokens', err);
+    } finally {
+      setTokensLoading(false);
     }
   }, []);
 
@@ -254,78 +258,107 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
-                    {tokens.map((token) => {
-                      const expired = isExpired(token.expiresAt);
-                      const active = token.isActive && !expired;
-                      
-                      return (
-                        <tr key={token.id} className="hover:bg-gray-800/30 transition-colors">
+                    {tokensLoading ? (
+                      // Skeleton rows
+                      [...Array(3)].map((_, i) => (
+                        <tr key={i} className="animate-pulse">
                           <td className="px-6 py-4">
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium text-white">{token.label}</span>
-                              <span className="text-xs text-gray-500 font-mono">
-                                {token.token.substring(0, 4)}...{token.token.substring(token.token.length - 4)}
-                              </span>
+                            <div className="flex flex-col gap-2">
+                              <div className="h-4 bg-gray-800 rounded w-24"></div>
+                              <div className="h-3 bg-gray-800 rounded w-32"></div>
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            {active ? (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">
-                                <Activity className="w-3 h-3 mr-1" /> Active
-                              </span>
-                            ) : expired ? (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
-                                <Clock className="w-3 h-3 mr-1" /> Expired
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">
-                                <ShieldAlert className="w-3 h-3 mr-1" /> Revoked
-                              </span>
-                            )}
+                            <div className="h-6 bg-gray-800 rounded-full w-20"></div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center gap-2 text-xs text-gray-400">
-                              <Calendar className="w-3 h-3" />
-                              {formatDate(token.expiresAt)}
-                            </div>
+                            <div className="h-4 bg-gray-800 rounded w-24"></div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-xs text-gray-400">
-                              {token.lastUsedAt ? formatDate(token.lastUsedAt) : 'Never used'}
-                            </div>
+                            <div className="h-4 bg-gray-800 rounded w-24"></div>
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex justify-end gap-2">
-                              {active && (
-                                <button
-                                  onClick={() => copyToClipboard(token.token)}
-                                  className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-blue-400 transition-colors"
-                                  title="Copy Access Link"
-                                >
-                                  {copySuccess === token.token ? (
-                                    <Check className="w-4 h-4 text-green-500" />
-                                  ) : (
-                                    <Copy className="w-4 h-4" />
-                                  )}
-                                </button>
-                              )}
-                              {token.isActive && (
-                                <button
-                                  onClick={() => handleRevoke(token.id)}
-                                  className="p-2 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
-                                  title="Revoke Access"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
+                              <div className="w-8 h-8 bg-gray-800 rounded-lg"></div>
+                              <div className="w-8 h-8 bg-gray-800 rounded-lg"></div>
                             </div>
                           </td>
                         </tr>
-                      );
-                    })}
+                      ))
+                    ) : (
+                      tokens.map((token) => {
+                        const expired = isExpired(token.expiresAt);
+                        const active = token.isActive && !expired;
+                        
+                        return (
+                          <tr key={token.id} className="hover:bg-gray-800/30 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-white">{token.label}</span>
+                                <span className="text-xs text-gray-500 font-mono">
+                                  {token.token.substring(0, 4)}...{token.token.substring(token.token.length - 4)}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              {active ? (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">
+                                  <Activity className="w-3 h-3 mr-1" /> Active
+                                </span>
+                              ) : expired ? (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
+                                  <Clock className="w-3 h-3 mr-1" /> Expired
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">
+                                  <ShieldAlert className="w-3 h-3 mr-1" /> Revoked
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2 text-xs text-gray-400">
+                                <Calendar className="w-3 h-3" />
+                                {formatDate(token.expiresAt)}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="text-xs text-gray-400">
+                                {token.lastUsedAt ? formatDate(token.lastUsedAt) : 'Never used'}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex justify-end gap-2">
+                                {active && (
+                                  <button
+                                    onClick={() => copyToClipboard(token.token)}
+                                    className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-blue-400 transition-colors"
+                                    title="Copy Access Link"
+                                  >
+                                    {copySuccess === token.token ? (
+                                      <Check className="w-4 h-4 text-green-500" />
+                                    ) : (
+                                      <Copy className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                )}
+                                {token.isActive && (
+                                  <button
+                                    onClick={() => handleRevoke(token.id)}
+                                    className="p-2 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
+                                    title="Revoke Access"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
-                {tokens.length === 0 && (
+                {!tokensLoading && tokens.length === 0 && (
                   <div className="py-12 text-center">
                     <p className="text-gray-500">No tokens generated yet.</p>
                   </div>

@@ -23,7 +23,7 @@ export function BatchSelector() {
         } catch (error) {
             console.error("Failed to fetch batches", error);
             // Fallback
-            setAvailableBatches(["2026", "2027"]);
+            setAvailableBatches(["2026", "2027", "2028", "2029"]);
         }
     };
     fetchBatches();

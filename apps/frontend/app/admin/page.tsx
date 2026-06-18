@@ -101,6 +101,19 @@ export default function AdminPage() {
     }
   };
 
+  const handleUpdateExpiry = async (id: string, newExpiry: string) => {
+    if (!newExpiry) return;
+    setLoading(true);
+    try {
+      await adminAPI.updateTokenExpiry(id, newExpiry);
+      fetchTokens();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to update expiry');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const copyToClipboard = (token: string) => {
     const url = `${window.location.origin}/portal?token=${token}`;
     navigator.clipboard.writeText(url);
@@ -316,9 +329,22 @@ export default function AdminPage() {
                               )}
                             </td>
                             <td className="px-6 py-4">
-                              <div className="flex items-center gap-2 text-xs text-gray-400">
-                                <Calendar className="w-3 h-3" />
-                                {formatDate(token.expiresAt)}
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-2 text-xs text-gray-400">
+                                  <Calendar className="w-3 h-3" />
+                                  {formatDate(token.expiresAt)}
+                                </div>
+                                <select
+                                  onChange={(e) => handleUpdateExpiry(token.id, e.target.value)}
+                                  className="text-[11px] bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500/50 max-w-[110px]"
+                                  value=""
+                                >
+                                  <option value="" disabled>Change Expiry</option>
+                                  <option value="1d">1 Day</option>
+                                  <option value="7d">7 Days</option>
+                                  <option value="30d">30 Days</option>
+                                  <option value="never">Never</option>
+                                </select>
                               </div>
                             </td>
                             <td className="px-6 py-4">

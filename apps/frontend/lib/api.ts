@@ -37,4 +37,5 @@ export const adminAPI = {
   getTokens: () => apiClient.get("/api/admin/tokens"),
   createToken: (label: string, expiry: string) => apiClient.post("/api/admin/tokens", { label, expiry }),
   revokeToken: (id: string) => apiClient.post(`/api/admin/tokens/${id}/revoke`),
+  updateTokenExpiry: (id: string, expiry: string) => apiClient.post(`/api/admin/tokens/${id}/expiry`, { expiry }),
 }

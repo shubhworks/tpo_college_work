@@ -10,7 +10,7 @@ import {
     getBatches
 } from "./studentsControllers";
 import { validateToken, checkSession } from "./controllers/tokenController";
-import { adminLogin, listTokens, createToken, revokeToken } from "./controllers/adminController";
+import { adminLogin, listTokens, createToken, revokeToken, updateTokenExpiry } from "./controllers/adminController";
 import { tokenAuth } from "./middleware/tokenAuth";
 import { adminAuth } from "./middleware/adminAuth";
 
@@ -45,6 +45,7 @@ app.post("/api/admin/login", adminLogin);
 app.get("/api/admin/tokens", adminAuth, listTokens);
 app.post("/api/admin/tokens", adminAuth, createToken);
 app.post("/api/admin/tokens/:id/revoke", adminAuth, revokeToken);
+app.post("/api/admin/tokens/:id/expiry", adminAuth, updateTokenExpiry);
 
 // Protected data routes
 app.use(tokenAuth);

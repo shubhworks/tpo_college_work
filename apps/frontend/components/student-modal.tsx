@@ -156,7 +156,7 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
                   {/* Action Buttons & Socials */}
                   <div className="flex flex-col sm:flex-row justify-between items-center gap-6 pb-8 border-b border-gray-200">
                     <div className="flex gap-4">
-                      {student.latest_resume_link && (
+                      {/* {student.latest_resume_link && (
                         <a
                           href={student.latest_resume_link}
                           target="_blank"
@@ -164,7 +164,7 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
                         >
                           <Download className="w-4 h-4" /> Resume
                         </a>
-                      )}
+                      )} */}
                       {student.student_folder_link && (
                         <a
                           href={student.student_folder_link}

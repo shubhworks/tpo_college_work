@@ -36,6 +36,13 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [totalPrograms, setTotalPrograms] = useState(0)
 
+  const totalEligibleStudents = PROGRAMS.reduce(
+    (sum, program) => sum + (branchCounts[program.slug] || 0),
+    0,
+  )
+
+  const formatCount = (count: number) => `${count}+`
+
   useEffect(() => {
     let isMounted = true;
     const fetchStudentCounts = async () => {
@@ -43,7 +50,7 @@ export default function Home() {
       try {
         const response = await studentAPI.getStudents(undefined, batch, spreadsheetId || undefined)
         if (!isMounted) return;
-        
+
         const students = response.data as Student[]
 
         // Count students per branch
@@ -57,13 +64,13 @@ export default function Home() {
       } catch (error) {
         console.error("Failed to fetch student counts:", error)
         if (isMounted) {
-            // Set default counts if API fails
-            const defaultCounts: BranchCounts = {}
-            PROGRAMS.forEach(program => {
-                defaultCounts[program.slug] = 0
-            })
-            setBranchCounts(defaultCounts)
-            setTotalPrograms(PROGRAMS.length)
+          // Set default counts if API fails
+          const defaultCounts: BranchCounts = {}
+          PROGRAMS.forEach(program => {
+            defaultCounts[program.slug] = 0
+          })
+          setBranchCounts(defaultCounts)
+          setTotalPrograms(PROGRAMS.length)
         }
       } finally {
         if (isMounted) setLoading(false)
@@ -72,7 +79,7 @@ export default function Home() {
 
     fetchStudentCounts()
     return () => {
-        isMounted = false;
+      isMounted = false;
     };
   }, [batch, spreadsheetId])
 
@@ -93,6 +100,91 @@ export default function Home() {
                 facilities and industry partnerships. Our commitment to excellence in education has produced thousands of
                 successful engineers.
               </p>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_1.9fr] gap-6 mb-10 items-start">
+              {/* Stats + Branch-wise Table */}
+              <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm col-span-full">
+                {/* Stats Row */}
+                <div className="flex overflow-x-auto border-b border-gray-200">
+                  {[
+                    { num: "240", sup: "+", label: "Corporate Associations" },
+                    { num: "53", unit: " LPA", label: "Highest CTC" },
+                    { num: "5", unit: " LPA", label: "Average CTC" },
+                    { num: "20", sup: "+", unit: " MOUs", label: "For Training & Development" },
+                  ].map((stat, i) => (
+                    <div
+                      key={i}
+                      className="flex flex-1 min-w-[110px] flex-col items-center justify-center px-3 py-4 border-r border-gray-200 last:border-r-0"
+                    >
+                      <span className="text-2xl font-bold text-gray-900">
+                        {stat.num}
+                        {stat.sup && <sup className="text-sm font-semibold align-super">{stat.sup}</sup>}
+                        {stat.unit && <span className="text-sm font-semibold">{stat.unit}</span>}
+                      </span>
+                      <span className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400 text-center leading-tight">
+                        {stat.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Header */}
+                <div className="flex flex-col gap-3 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Eligible Students</p>
+                    <h3 className="mt-1 text-lg font-semibold text-gray-900">Branch-wise opportunities</h3>
+                  </div>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm">
+                    <span>785</span>
+                    <span className="text-slate-300">+</span>
+                  </div>
+                </div>
+
+                {/* Scrollable Table */}
+                <div className="overflow-x-auto">
+                  <table className="min-w-[900px] w-full border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-900 text-white">
+                        {[
+                          "Branches", "CSE", "CSE – AI&ML", "CSE – DS", "CSE – IoT & CySec",
+                          "CSBS", "CSE – AI&DS", "CSE – CSD", "CSE – AI & Robotics",
+                          "EC", "EE", "EX", "CE", "ME", "MCA"
+                        ].map((h, i) => (
+                          <th
+                            key={i}
+                            className={`py-3 px-3 font-medium whitespace-nowrap border-r border-white/10 last:border-r-0 ${i === 0 ? "text-left min-w-[110px]" : "text-center"}`}
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="py-3 px-3 text-center font-semibold text-[11px] whitespace-nowrap bg-blue-50 text-blue-800 border-r border-gray-200 border-b border-gray-100">
+                          60% Throughout
+                        </td>
+                        {[356, 128, 75, 28, 20, 20, 17, 14, 20, 12, 11, 20, 8, 36].map((n, i) => (
+                          <td key={i} className="py-3 px-3 text-center font-medium text-gray-800 border-r border-gray-200 border-b border-gray-100 last:border-r-0">
+                            {n}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr>
+                        <td className="py-3 px-3 text-center font-semibold text-[11px] whitespace-nowrap bg-amber-50 text-amber-800 border-r border-gray-200">
+                          70% Throughout
+                        </td>
+                        {[216, 84, 49, 16, 12, 12, 9, 7, 10, 8, 3, 10, 5, 19].map((n, i) => (
+                          <td key={i} className="py-3 px-3 text-center font-medium text-gray-800 bg-slate-50/50 border-r border-gray-200 last:border-r-0">
+                            {n}
+                          </td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
 
             {/* Stats Cards */}
@@ -158,7 +250,7 @@ export default function Home() {
                 const Icon = ICONS[program.slug] || Code
                 const colorClass = COLORS[program.slug] || "bg-gray-100 text-gray-600"
                 const studentCount = branchCounts[program.slug] || 0
-                
+
                 const batchParams = new URLSearchParams()
                 if (batch) batchParams.set("batch", batch)
                 if (spreadsheetId) batchParams.set("spreadsheetId", spreadsheetId)

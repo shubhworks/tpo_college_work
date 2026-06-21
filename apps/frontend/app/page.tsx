@@ -115,29 +115,79 @@ export default function Home() {
                   ].map((stat, i) => (
                     <div
                       key={i}
-                      className="flex flex-1 min-w-[110px] flex-col items-center justify-center px-3 py-4 border-r border-gray-200 last:border-r-0"
+                      className="flex flex-1 min-w-[120px] flex-col items-center justify-center px-3 py-5 border-r border-gray-200 last:border-r-0"
                     >
-                      <span className="text-2xl font-bold text-gray-900">
+                      <span className="text-3xl font-black text-gray-900">
                         {stat.num}
-                        {stat.sup && <sup className="text-sm font-semibold align-super">{stat.sup}</sup>}
-                        {stat.unit && <span className="text-sm font-semibold">{stat.unit}</span>}
+                        {stat.sup && <sup className="text-base font-bold align-super">{stat.sup}</sup>}
+                        {stat.unit && <span className="text-base font-bold">{stat.unit}</span>}
                       </span>
-                      <span className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400 text-center leading-tight">
+                      <span className="mt-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 text-center leading-tight">
                         {stat.label}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                {/* Header */}
-                <div className="flex flex-col gap-3 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Eligible Students</p>
-                    <h3 className="mt-1 text-lg font-semibold text-gray-900">Branch-wise opportunities</h3>
+                {/* NBA + Programs Info Bar */}
+                <div className="flex flex-col sm:flex-row items-stretch border-b border-gray-200">
+                  {/* NBA Badge */}
+                  <div className="flex items-center gap-4 px-6 py-5 border-b sm:border-b-0 sm:border-r border-gray-200 shrink-0">
+                    <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-900 text-white shrink-0">
+                      <span className="text-2xl font-black leading-none">5</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 leading-tight">Branches of GGITS</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Accredited by</p>
+                      <span className="inline-block mt-1 px-2 py-0.5 rounded bg-blue-700 text-white text-xs font-black tracking-widest">
+                        NBA
+                      </span>
+                    </div>
                   </div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm">
+
+                  {/* B.Tech Programs */}
+                  <div className="flex flex-col justify-center px-6 py-5 border-b sm:border-b-0 sm:border-r border-gray-200 flex-1">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400 mb-2">B.Tech in</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        "CSE", "CSE – Data Science", "CSE – AIML", "CSE – IoT",
+                        "Cyber Security", "CSBS", "AIR", "CSD", "ECE", "EE", "EX", "ME", "CE"
+                      ].map((prog) => (
+                        <span
+                          key={prog}
+                          className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-semibold"
+                        >
+                          {prog}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* M.Tech / MBA / MCA / Pharma */}
+                  <div className="flex flex-col justify-center px-6 py-5 shrink-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400 mb-2">Also Offered</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {["M.Tech", "MBA", "MCA", "Pharma"].map((prog) => (
+                        <span
+                          key={prog}
+                          className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[11px] font-semibold"
+                        >
+                          {prog}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Branch-wise Table Header */}
+                <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">Placement Data</p>
+                    <h3 className="text-lg font-bold text-gray-900 mt-0.5">Branch-wise Eligible Students</h3>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-4 py-2 text-sm font-bold text-white shadow-sm">
                     <span>785</span>
-                    <span className="text-slate-300">+</span>
+                    <span className="text-slate-400 text-xs">+</span>
                   </div>
                 </div>
 
@@ -153,7 +203,7 @@ export default function Home() {
                         ].map((h, i) => (
                           <th
                             key={i}
-                            className={`py-3 px-3 font-medium whitespace-nowrap border-r border-white/10 last:border-r-0 ${i === 0 ? "text-left min-w-[110px]" : "text-center"}`}
+                            className={`py-3 px-3 font-semibold whitespace-nowrap border-r border-white/10 last:border-r-0 text-[11px] tracking-wide ${i === 0 ? "text-left min-w-[120px]" : "text-center"}`}
                           >
                             {h}
                           </th>
@@ -161,22 +211,22 @@ export default function Home() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td className="py-3 px-3 text-center font-semibold text-[11px] whitespace-nowrap bg-blue-50 text-blue-800 border-r border-gray-200 border-b border-gray-100">
+                      <tr className="bg-blue-50">
+                        <td className="py-3.5 px-4 font-bold text-[11px] whitespace-nowrap text-blue-800 border-r border-blue-100 border-b border-blue-100 uppercase tracking-wide">
                           60% Throughout
                         </td>
                         {[356, 128, 75, 28, 20, 20, 17, 14, 20, 12, 11, 20, 8, 36].map((n, i) => (
-                          <td key={i} className="py-3 px-3 text-center font-medium text-gray-800 border-r border-gray-200 border-b border-gray-100 last:border-r-0">
+                          <td key={i} className="py-3.5 px-3 text-center font-bold text-sm text-blue-900 border-r border-blue-100 border-b border-blue-100 last:border-r-0">
                             {n}
                           </td>
                         ))}
                       </tr>
-                      <tr>
-                        <td className="py-3 px-3 text-center font-semibold text-[11px] whitespace-nowrap bg-amber-50 text-amber-800 border-r border-gray-200">
+                      <tr className="bg-amber-50">
+                        <td className="py-3.5 px-4 font-bold text-[11px] whitespace-nowrap text-amber-800 border-r border-amber-100 uppercase tracking-wide">
                           70% Throughout
                         </td>
                         {[216, 84, 49, 16, 12, 12, 9, 7, 10, 8, 3, 10, 5, 19].map((n, i) => (
-                          <td key={i} className="py-3 px-3 text-center font-medium text-gray-800 bg-slate-50/50 border-r border-gray-200 last:border-r-0">
+                          <td key={i} className="py-3.5 px-3 text-center font-bold text-sm text-amber-900 border-r border-amber-100 last:border-r-0">
                             {n}
                           </td>
                         ))}

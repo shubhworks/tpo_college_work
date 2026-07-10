@@ -21,9 +21,7 @@ function PortalContent() {
       try {
         const response = await authAPI.validateToken(token);
         if (response.data.success) {
-          if (response.data.isPermanent) {
-            storeToken(token);
-          }
+          storeToken(token);
           router.push('/');
         } else {
           router.push('/access-denied');

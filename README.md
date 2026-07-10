@@ -85,3 +85,23 @@ The TPO Portal now features a robust, secure, and user-friendly access control s
 *   **Masked Tokens**: In the Admin panel, tokens are displayed in a masked format (e.g., `a3f9...xz`) to prevent data leaks.
 *   **Instant Revocation**: Revoking a token in the Admin panel sets `isActive = false` in the database, which instantly kills all existing sessions for that token.
 *   **Cryptographic Randomness**: Tokens are generated using the OS's cryptographically secure random number generator, making them impossible to guess or brute-force.
+
+<hr/>
+
+Fixed the likely iPhone/iOS issue.
+
+Root cause: expiring access links relied on a cross-site backend session cookie after /portal?token=... validation. iOS
+Safari can block or drop those cookies, so the link validates but the next page can still deny access. Now every valid token
+is stored in first-party localStorage and revalidated by TokenGate, so iOS does not depend on the cross-site cookie.
+
+Changed:
+
+- apps/frontend/app/portal/page.tsx:24: stores all valid tokens, not only permanent ones.
+- apps/frontend/lib/token.ts:1: wrapped localStorage reads/writes in try/catch for Safari/private-mode safety.
+- apps/frontend/app/admin/page.tsx:125: access links are URL-encoded, can use NEXT_PUBLIC_FRONTEND_URL, and clipboard copy
+now has an older Safari fallback instead of silently failing.
+
+Verification:
+
+- pnpm --filter frontend lint passes, with existing warnings only.
+- pnpm --filter frontend build passes after allowing network access for Google Fonts.

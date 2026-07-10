@@ -11,8 +11,7 @@ import {
   Activity,
   ShieldAlert,
   Calendar,
-  Trash2,
-  ExternalLink
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
@@ -27,6 +26,15 @@ interface AccessToken {
   createdAt: string;
   lastUsedAt: string | null;
 }
+
+const getApiErrorMessage = (err: unknown, fallback: string) => {
+  if (typeof err === 'object' && err !== null && 'response' in err) {
+    const response = (err as { response?: { data?: { error?: string } } }).response;
+    return response?.data?.error || fallback;
+  }
+
+  return fallback;
+};
 
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -65,8 +73,8 @@ export default function AdminPage() {
     try {
       await adminAPI.login(password);
       setIsLoggedIn(true);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Invalid password');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Invalid password'));
     } finally {
       setLoading(false);
     }
@@ -84,8 +92,8 @@ export default function AdminPage() {
       });
       setLabel('');
       fetchTokens();
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to create token');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to create token'));
     } finally {
       setLoading(false);
     }
@@ -107,18 +115,42 @@ export default function AdminPage() {
     try {
       await adminAPI.updateTokenExpiry(id, newExpiry);
       fetchTokens();
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to update expiry');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to update expiry'));
     } finally {
       setLoading(false);
     }
   };
 
-  const copyToClipboard = (token: string) => {
-    const url = `${window.location.origin}/portal?token=${token}`;
-    navigator.clipboard.writeText(url);
-    setCopySuccess(token);
-    setTimeout(() => setCopySuccess(null), 2000);
+  const getAccessUrl = (token: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || window.location.origin;
+    return `${baseUrl.replace(/\/$/, '')}/portal?token=${encodeURIComponent(token)}`;
+  };
+
+  const copyToClipboard = async (token: string) => {
+    const url = getAccessUrl(token);
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+
+      setCopySuccess(token);
+      setTimeout(() => setCopySuccess(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy access link', err);
+      setError('Could not copy the link automatically. Please select and copy it manually.');
+    }
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -237,7 +269,7 @@ export default function AdminPage() {
                   <p className="text-sm text-green-400 font-medium mb-2">Success! Link generated for {newTokenData.label}</p>
                   <div className="flex items-center gap-2 bg-gray-800 p-2 rounded-lg">
                     <code className="text-xs text-gray-300 truncate flex-1">
-                      {window.location.origin}/portal?token={newTokenData.token}
+                      {getAccessUrl(newTokenData.token)}
                     </code>
                     <button 
                       onClick={() => copyToClipboard(newTokenData.token)}

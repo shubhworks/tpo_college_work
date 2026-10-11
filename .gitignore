@@ -26,6 +26,8 @@ coverage
 out/
 build
 dist
+temp/
+STUDENT_API.md
 
 
 # Debug

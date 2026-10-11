@@ -56,21 +56,26 @@ export function MyGGStudentModal({ student, onClose }: MyGGStudentModalProps) {
                     {student.profileImageUrl ? (
                       <Image
                         src={student.profileImageUrl}
-                        alt={`${student.fullName}'s profile`}
+                        alt={`${student.fullName || "Student"}'s profile`}
                         fill
                         unoptimized
                         className="object-cover"
                       />
                     ) : (
-                      <span className="text-4xl font-bold">{student.firstName.charAt(0)}{student.lastName.charAt(0)}</span>
+                      <span className="text-4xl font-bold">
+                        {(student.firstName?.charAt(0) || student.fullName?.charAt(0) || "?")}
+                        {(student.lastName?.charAt(0) || "")}
+                      </span>
                     )}
                   </div>
                   <div className="flex-1 text-center sm:text-left">
-                    <h2 id="mygg-profile-name" className="text-3xl sm:text-4xl font-bold mb-2">{student.fullName}</h2>
+                    <h2 id="mygg-profile-name" className="text-3xl sm:text-4xl font-bold mb-2">
+                      {student.fullName || `${student.firstName || ""} ${student.lastName || ""}`.trim() || "Student Profile"}
+                    </h2>
                     <div className="flex flex-wrap gap-3 justify-center sm:justify-start mb-6 text-sm">
                       <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">{student.enrollmentNumber}</span>
-                      <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">{student.academic.branch.name}</span>
-                      <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">Passout {student.academic.passoutYear ?? "—"}</span>
+                      <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">{student.academic?.branch?.name || student.academic?.branch?.shortCode || "—"}</span>
+                      <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">Passout {student.academic?.passoutYear ?? "—"}</span>
                     </div>
                     <div className="space-y-2 text-white/90 text-sm">
                       {student.email && (

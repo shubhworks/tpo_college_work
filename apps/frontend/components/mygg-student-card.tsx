@@ -34,28 +34,29 @@ export function MyGGStudentCard({ student, onOpenProfile }: MyGGStudentCardProps
             {student.profileImageUrl ? (
               <Image
                 src={student.profileImageUrl}
-                alt={`${student.fullName}'s profile`}
+                alt={`${student.fullName || "Student"}'s profile`}
                 fill
                 unoptimized
                 className="object-cover"
               />
             ) : (
               <span className="text-2xl font-bold text-blue-700">
-                {student.firstName.charAt(0)}{student.lastName.charAt(0)}
+                {(student.firstName?.charAt(0) || student.fullName?.charAt(0) || "?")}
+                {(student.lastName?.charAt(0) || "")}
               </span>
             )}
           </div>
         </div>
 
-        <h3 className="text-xl font-extrabold text-black text-center mb-1 line-clamp-1">{student.fullName}</h3>
+        <h3 className="text-xl font-extrabold text-black text-center mb-1 line-clamp-1">{student.fullName || `${student.firstName || ""} ${student.lastName || ""}`.trim() || "Student"}</h3>
         <p className="text-xs font-bold text-gray-800 text-center mb-4">{student.enrollmentNumber}</p>
 
         <div className="flex flex-wrap justify-center gap-2 mb-6">
           <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-bold tracking-wide uppercase">
-            {student.academic.branch.shortCode}
+            {student.academic?.branch?.shortCode || "—"}
           </span>
           <span className="px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-[10px] font-bold tracking-wide uppercase">
-            Passout {student.academic.passoutYear ?? "—"}
+            Passout {student.academic?.passoutYear ?? "—"}
           </span>
         </div>
 

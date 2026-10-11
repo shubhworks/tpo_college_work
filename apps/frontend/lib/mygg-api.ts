@@ -1,5 +1,47 @@
 import type { MyGGApiError, MyGGBranch, MyGGStudent } from "@/types/mygg"
-import { getStoredToken } from "@/lib/token"
+
+const MYGG_TOKEN_KEY = "mygg_admin_token"
+
+export function getMyGGToken(): string | null {
+  if (typeof window === "undefined") return null
+  return localStorage.getItem(MYGG_TOKEN_KEY)
+}
+
+export function setMyGGToken(token: string) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(MYGG_TOKEN_KEY, token)
+  }
+}
+
+export function clearMyGGToken() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(MYGG_TOKEN_KEY)
+  }
+}
+
+interface LoginResponse {
+  success: boolean
+  token?: string
+  role?: string
+  message?: string
+  code?: string
+}
+
+export async function loginMyGG(identifier: string, password: string): Promise<LoginResponse> {
+  const response = await fetch("/api/mygg/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identifier, password }),
+  })
+  const payload = (await response.json()) as LoginResponse
+  if (!response.ok || !payload.success) {
+    throw new Error(payload.message || "MyGG authentication failed.")
+  }
+  if (payload.token) {
+    setMyGGToken(payload.token)
+  }
+  return payload
+}
 
 interface BranchesResponse {
   success: boolean
@@ -20,22 +62,26 @@ interface StudentsResponse {
 }
 
 async function request<T>(path: string): Promise<T> {
-  const token = getStoredToken()
+  const token = getMyGGToken()
+  const headers: Record<string, string> = {}
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
+  }
+
   const response = await fetch(path, {
     cache: "no-store",
-    headers: token ? { "X-TPO-Access-Token": token } : {},
+    headers,
   })
   const payload = (await response.json()) as T & MyGGApiError
 
   if (!response.ok) {
-    if (payload.message) throw new Error(payload.message)
-    if (response.status === 401) {
-      throw new Error("MyGG authentication failed. Check the configured admin token.")
+    const error = new Error(payload.message || `MyGG request failed (${response.status}).`) as Error & {
+      code?: string
+      status?: number
     }
-    if (response.status === 403) {
-      throw new Error("MyGG access denied. The token must belong to an ADMIN with EXPORT_STUDENT_PROFILES permission.")
-    }
-    throw new Error(`MyGG request failed (${response.status}).`)
+    error.status = response.status
+    error.code = payload.code
+    throw error
   }
 
   return payload
@@ -46,7 +92,7 @@ export async function getMyGGBranches() {
   return response.data.items
 }
 
-export async function getMyGGBranchStudents(branchCode: string, passoutYear: string) {
+export async function getMyGGBranchStudents(branchCode: string, passoutYear?: string) {
   const students: MyGGStudent[] = []
   let page = 1
   let totalPages = 1
@@ -56,8 +102,10 @@ export async function getMyGGBranchStudents(branchCode: string, passoutYear: str
       status: "ACTIVE",
       limit: "100",
       page: String(page),
-      passoutYear,
     })
+    if (passoutYear) {
+      query.set("passoutYear", passoutYear)
+    }
     const response = await request<StudentsResponse>(
       `/api/mygg/branches/${encodeURIComponent(branchCode)}/students?${query.toString()}`,
     )

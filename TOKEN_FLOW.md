@@ -4,8 +4,9 @@ This document explains how to use the Token-Based Access Control system for the 
 
 ## 1. Admin Setup
 1. Set the `ADMIN_PASSWORD` and `SESSION_SECRET` in your backend `.env` file.
-2. Navigate to `/admin` on the portal.
-3. Login with the configured `ADMIN_PASSWORD`.
+2. For the Vercel backend deployment, set `DATABASE_URL` for Production. The backend generates the Prisma Client during installation and again during its build.
+3. Navigate to `/admin` on the portal.
+4. Login with the configured `ADMIN_PASSWORD`.
 
 ## 2. Managing Access Tokens
 Once logged in to the Admin Dashboard:

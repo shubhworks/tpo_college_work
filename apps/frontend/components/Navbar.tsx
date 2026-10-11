@@ -10,6 +10,7 @@ import { BatchSelector } from "./batch-selector"
 
 const NAV_ITEMS = [
   { name: "Home", href: "/" },
+  { name: "MyGG Portfolio", href: "/mygg" },
   { name: "About", href: "/about" },
   { name: "T&P Cell", href: "/tp-cell" },
   { name: "Contact Us", href: "/contact" },

@@ -27,6 +27,9 @@ out/
 build
 dist
 
+STUDENT_API.md
+/temp
+
 
 # Debug
 npm-debug.log*

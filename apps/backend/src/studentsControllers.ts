@@ -10,6 +10,29 @@ function normalizeHeader(h: string) {
   return h.trim().toLowerCase().replace(/\s+/g, "_");
 }
 
+function firstValue(item: Record<string, any>, keys: string[]) {
+  for (const key of keys) {
+    const value = item[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+  return "";
+}
+
+function getContactFields(item: Record<string, any>) {
+  return {
+    email_id: firstValue(item, ["email_id", "email", "email_address", "e_mail"]),
+    mobile_number: firstValue(item, [
+      "mobile_number",
+      "mobile",
+      "phone_number",
+      "phone",
+      "contact_number",
+    ]),
+  };
+}
+
 const CACHE_TTL_SECONDS = Number(process.env.CACHE_TTL_SECONDS || 300); // default 5 minutes
 
 function getBatchConfig(req: Request): BatchConfig {
@@ -127,6 +150,7 @@ export async function getAllStudents(req: Request, res: Response) {
     // Map fields to standard names for frontend if necessary
     const mappedData = data.map(item => ({
         ...item,
+      ...getContactFields(item),
         university_enrolment_number: item[config.columnMapping.enrollment] || "",
         name: item[config.columnMapping.name] || "",
         branch: item[config.columnMapping.branch] || "",
@@ -194,6 +218,7 @@ export async function getStudentByEnrollment(req: Request, res: Response) {
     // Standardize fields
     const standardizedStudent = {
         ...student,
+      ...getContactFields(student),
         university_enrolment_number: student[config.columnMapping.enrollment],
         name: student[config.columnMapping.name],
         branch: student[config.columnMapping.branch],

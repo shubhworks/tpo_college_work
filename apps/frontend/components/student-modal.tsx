@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
-import { Github, Linkedin, Code2, Mail, FileText, Download, X, GraduationCap, Building2 } from "lucide-react"
+import { Github, Linkedin, Code2, Mail, FileText, Download, X, GraduationCap, Building2, Phone } from "lucide-react"
 import { studentAPI } from "@/lib/api"
 import type { Student, Certificate } from "@/types/student"
 import { CertGallery } from "./cert-gallery"
@@ -144,6 +144,11 @@ export function StudentModal({ enrollment, isOpen, onClose }: StudentModalProps)
                         {student.email_id && (
                           <div className="flex items-center gap-3 justify-center sm:justify-start">
                             <Mail className="w-4 h-4" /> {student.email_id}
+                          </div>
+                        )}
+                        {student.mobile_number && (
+                          <div className="flex items-center gap-3 justify-center sm:justify-start">
+                            <Phone className="w-4 h-4" /> {student.mobile_number}
                           </div>
                         )}
                       </div>

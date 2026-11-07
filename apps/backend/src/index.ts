@@ -18,11 +18,17 @@ dotenv.config();
 
 const app = express();
 
+const configuredFrontendOrigins = (process.env.FRONTEND_URL || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
 const corsOptions = {
     origin: [
         'http://localhost:3000',
         'http://localhost:3001',
         'https://tpoportal.vercel.app',
+        ...configuredFrontendOrigins,
     ],
     credentials: true,
     optionsSuccessStatus: 200

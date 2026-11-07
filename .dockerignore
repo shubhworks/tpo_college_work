@@ -1,0 +1,17 @@
+.git
+.github
+.turbo
+.next
+node_modules
+**/node_modules
+**/.next
+**/dist
+**/.env
+**/.env.*
+!.env.sample
+*.log
+.DS_Store
+temp
+README.md
+TASK.md
+STUDENT_API.md

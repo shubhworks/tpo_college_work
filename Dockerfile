@@ -5,7 +5,11 @@ FROM node:22-bookworm-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates openssl \
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable \
+    && corepack prepare pnpm@9.0.0 --activate
 
 WORKDIR /app
 
@@ -13,6 +17,8 @@ FROM base AS dependencies
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/backend/package.json apps/backend/package.json
+COPY apps/backend/prisma.config.ts apps/backend/prisma.config.ts
+COPY apps/backend/prisma apps/backend/prisma
 COPY apps/frontend/package.json apps/frontend/package.json
 COPY packages/eslint-config/package.json packages/eslint-config/package.json
 COPY packages/typescript-config/package.json packages/typescript-config/package.json
@@ -29,7 +35,7 @@ FROM source AS backend-builder
 RUN pnpm --filter backend build
 RUN pnpm deploy --filter backend --prod /prod/backend
 
-FROM node:22-bookworm-slim AS backend
+FROM base AS backend
 
 ENV NODE_ENV=production
 ENV PORT=3001

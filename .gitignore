@@ -29,6 +29,9 @@ dist
 temp/
 STUDENT_API.md
 
+STUDENT_API.md
+/temp
+
 
 # Debug
 npm-debug.log*

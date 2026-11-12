@@ -9,9 +9,8 @@ services:
       NODE_ENV: production
       PORT: 3001
     command:
-      - sh
-      - -c
-      - ./node_modules/.bin/prisma migrate deploy && node dist/src/index.js
+      - node
+      - dist/src/index.js
     ports:
       - "127.0.0.1:${BACKEND_PORT:-3011}:3001"
     extra_hosts:

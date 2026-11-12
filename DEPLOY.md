@@ -145,9 +145,8 @@ docker compose -f docker-compose.prod.yml up -d --build
 #### What this does:
 1. Builds a clean multi-stage production image from `Dockerfile`.
 2. Generates Prisma client into production `node_modules`.
-3. Runs `prisma migrate deploy` to ensure Neon PostgreSQL tables are up to date.
-4. Starts the Express backend on container port `3001`.
-5. Maps it securely to `127.0.0.1:3011` on the VM host.
+3. Starts the Express backend directly with `node dist/src/index.js` (no startup migration freeze/P3005 errors).
+4. Maps it securely to `127.0.0.1:3011` on the VM host.
 
 ---
 

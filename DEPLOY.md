@@ -1,246 +1,220 @@
-# TPO backend deployment
+# TPO Backend Deployment Guide
 
-This deployment runs the backend only: Express + Prisma on container port `3001`.
-The frontend is not included in either Compose file; it can remain hosted separately.
+This guide covers deploying the **TPO Backend** to your Ubuntu VM using Docker and exposing it under **`https://tpoapi.shubhashish.me`** via Caddy with automatic SSL.
 
-PostgreSQL is intentionally not included in Docker Compose. The backend connects to the Neon database through `DATABASE_URL`.
+---
 
-The production Compose file binds the backend to a loopback port only. Caddy should be the public HTTPS entry point:
+## 1. Architecture Overview
 
-| Service | VM loopback port | Example public hostname |
-| --- | ---: | --- |
-| Backend | `3011` | `api.example.com` |
+```mermaid
+flowchart LR
+    Browser["Student / Recruiter Browser"]
+    Vercel["Frontend (Vercel)\nNEXT_PUBLIC_BACKEND_URL"]
+    Caddy["Caddy Reverse Proxy\n(Port 80/443 Auto-SSL)\ntpoapi.shubhashish.me"]
+    DockerBackend["Docker Container: tpo-backend\n(Port 3001 inside -> 127.0.0.1:3011 on VM)"]
+    Neon["Neon.tech PostgreSQL\n(Access Tokens)"]
+    MySQL["Local ERP MySQL (gg_app)\n(182.19.81.116:3306)"]
 
-Change the host ports if they are already in use on the VM.
+    Browser --> Vercel
+    Vercel --> Caddy
+    Caddy -->|reverse_proxy localhost:3011| DockerBackend
+    DockerBackend -->|DATABASE_URL| Neon
+    DockerBackend -->|host.docker.internal:3306| MySQL
+```
 
-## 1. Prepare the Neon database
+* **Frontend**: Hosted on Vercel. Points to `https://tpoapi.shubhashish.me`.
+* **Backend**: Dockerized on the VM, binding to `127.0.0.1:3011` (isolated from public access).
+* **Reverse Proxy**: Caddy on the VM routes `tpoapi.shubhashish.me` $\to$ `localhost:3011` with automatic Let's Encrypt SSL.
+* **Databases**:
+  * **Neon.tech (Cloud PostgreSQL)**: Handled via `DATABASE_URL` (no self-hosting needed).
+  * **Gyan Ganga ERP (MySQL `gg_app`)**: Runs natively on the VM (`3306`). The container connects to it via `host.docker.internal:3306` (or `182.19.81.116:3306`).
 
-1. Create or select a Neon project and database.
-2. Copy its PostgreSQL connection string. It should include SSL, normally as `sslmode=require`.
-3. The first production start runs the checked-in Prisma migrations automatically with `prisma migrate deploy`.
+---
 
-Keep the connection string private. Do not commit either `.env` file described below.
+## 2. Port Allocation Check
 
-## 2. Configure secrets on the VM
-
-From the repository root on the VM:
+To ensure no other service on the VM is already using host port `3011`:
 
 ```bash
-cp apps/backend/.env.sample apps/backend/.env
+sudo ss -tulpn | grep LISTEN | grep 3011
 ```
 
-Edit `apps/backend/.env` and set at least:
+*(If port `3011` is free, nothing will output. If you want to use a different port, change `BACKEND_PORT` in your `.env` or in `docker-compose.prod.yml` and match it in Caddy).*
 
-```dotenv
-PORT=3001
-SPREADSHEET_ID=your_google_sheet_id
-GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account", ...}
-DATABASE_URL=postgresql://...neon...?...&sslmode=require
-ADMIN_PASSWORD=use-a-long-unique-password
-SESSION_SECRET=use-a-long-random-secret
-FRONTEND_URL=https://your-frontend-domain.example
-```
+---
 
-`FRONTEND_URL` is only needed when a separately hosted frontend calls this API. It may be a comma-separated list and must match the browser-visible frontend origin exactly, including `https://` and the port when applicable.
+## 3. Step-by-Step Deployment
 
-Optionally create a root `.env` if you need to change the host-side backend port:
+### Step 1: Point DNS to the VM
+1. Open your DNS management dashboard for `shubhashish.me`.
+2. Add a new **A record**:
+   * **Type**: `A`
+   * **Name / Host**: `tpoapi`
+   * **IPv4 Address**: `182.19.81.116` *(your VM public IP)*
+   * **TTL**: Lowest available (e.g. 300s).
+3. Verify DNS propagation from your computer:
+   ```bash
+   nslookup tpoapi.shubhashish.me 8.8.8.8
+   ```
+   *(When it returns `182.19.81.116`, DNS is live).*
 
-```dotenv
-BACKEND_PORT=3011
-```
+---
 
-Check the files without printing their contents:
+### Step 2: Configure Caddy Reverse Proxy
+SSH into your VM and edit the Caddyfile:
 
 ```bash
-test -s apps/backend/.env
+sudo nano /etc/caddy/Caddyfile
 ```
 
-## 3. Run locally with Docker
-
-The local Compose file builds and runs only the backend and does not start a PostgreSQL container. Ensure `apps/backend/.env` contains a reachable Neon `DATABASE_URL`, then run:
-
-```bash
-docker compose up -d --build
-docker compose ps
-docker compose logs -f backend
-```
-
-The backend health response is available at `http://localhost:3001/`.
-
-Stop the stack with:
-
-```bash
-docker compose down
-```
-
-## 4. First production deploy on the VM
-
-Install Docker Engine and the Compose plugin on the VM, then clone the repository into a dedicated project directory. Do not edit application files manually on the VM; make persistent changes in Git and redeploy them.
-
-From the project directory:
-
-```bash
-docker compose -f docker-compose.prod.yml config
-docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml ps
-```
-
-The backend container applies Prisma migrations before starting the Express server. Verify it locally on the VM:
-
-```bash
-curl --fail http://127.0.0.1:3011/
-docker compose -f docker-compose.prod.yml logs --tail=100 backend
-```
-
-A migration or environment failure causes the backend container to restart and appear unhealthy. Check the backend logs before changing anything:
-
-```bash
-docker compose -f docker-compose.prod.yml logs backend
-```
-
-## 5. Connect DNS and Caddy
-
-### DNS
-
-At the DNS provider for your domain, add an `A` record pointing to the VM IP:
-
-```text
-api.example.com     -> <VM_IP>
-```
-
-Confirm from your own machine:
-
-```bash
-nslookup api.example.com
-```
-
-### Caddy
-
-Append this block to `/etc/caddy/Caddyfile`, keeping existing services intact:
+Append this block at the end (keep your other existing services intact):
 
 ```caddy
-api.example.com {
-    reverse_proxy 127.0.0.1:3011
+tpoapi.shubhashish.me {
+    reverse_proxy localhost:3011
 }
 ```
 
-Validate and reload Caddy:
+Save and exit (`Ctrl+O`, `Enter`, `Ctrl+X`).
+
+Reload Caddy to activate the route and automatically provision the SSL certificate:
 
 ```bash
-sudo caddy validate --config /etc/caddy/Caddyfile
 sudo systemctl reload caddy
 ```
 
-Caddy obtains and renews HTTPS certificates automatically once DNS resolves and ports 80/443 are reachable.
+---
 
-After HTTPS is active, test:
+### Step 3: Setup Project & Environment on the VM
+
+1. Navigate to your project directory (or clone if new):
+   ```bash
+   cd /path/to/tpo_college_work
+   ```
+
+2. Make sure you are on the latest branch:
+   ```bash
+   git pull origin main
+   ```
+
+3. Create the production environment file for the backend:
+   ```bash
+   nano apps/backend/.env
+   ```
+
+   Paste your production secrets:
+   ```ini
+   PORT=3001
+   NODE_ENV=production
+
+   # Vercel Frontend Origin for CORS
+   FRONTEND_URL=https://tpoportal.vercel.app
+
+   # Google Sheets Configuration (Legacy 2026/2027 Batches)
+   SPREADSHEET_ID=your_spreadsheet_id
+   GOOGLE_SERVICE_ACCOUNT_JSON='{"type":"service_account",...}'
+
+   # Neon.tech Cloud PostgreSQL (Access Tokens & Prisma)
+   DATABASE_URL="postgresql://neondb_owner:your_password@ep-xyz.aws.neon.tech/neondb?sslmode=require"
+
+   # Auth & Admin
+   ADMIN_PASSWORD=your_admin_password
+   SESSION_SECRET=your_jwt_secret
+
+   # Live ERP MySQL Database (gg_app)
+   # Inside docker on Linux VM, host.docker.internal points to the host machine
+   GG_DB_HOST=host.docker.internal
+   GG_DB_PORT=3306
+   GG_DB_USER=gg_app_user
+   GG_DB_PASSWORD=your_gg_app_password
+   GG_DB_NAME=gg_app
+   ```
+
+   Save and exit (`Ctrl+O`, `Enter`, `Ctrl+X`).
+
+---
+
+### Step 4: Build and Start the Container
+
+Run the production Docker Compose command:
 
 ```bash
-curl --fail https://api.example.com/
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-## 6. Updating the deployment
+#### What this does:
+1. Builds a clean multi-stage production image from `Dockerfile`.
+2. Generates Prisma client into production `node_modules`.
+3. Runs `prisma migrate deploy` to ensure Neon PostgreSQL tables are up to date.
+4. Starts the Express backend on container port `3001`.
+5. Maps it securely to `127.0.0.1:3011` on the VM host.
 
-The recommended update is reproducible and does not preserve uncommitted VM edits:
+---
+
+### Step 5: Verify Deployment
+
+1. **Check container status**:
+   ```bash
+   docker compose -f docker-compose.prod.yml ps
+   ```
+   *(Should show `Up` and `healthy`).*
+
+2. **Check container logs**:
+   ```bash
+   docker compose -f docker-compose.prod.yml logs -f
+   ```
+   *(You should see `Server running on http://localhost:3001`).*
+
+3. **Test the live public endpoint**:
+   ```bash
+   curl -s https://tpoapi.shubhashish.me/ | cat
+   # Expected output: TPO SERVER IS UP!!
+
+   curl -s https://tpoapi.shubhashish.me/api/new/batches | jq .
+   # Expected output: list of live batches from gg_app MySQL
+   ```
+
+---
+
+### Step 6: Connect Vercel Frontend
+
+1. Go to your **Vercel Project Dashboard** $\to$ **Settings** $\to$ **Environment Variables**.
+2. Add or update:
+   * **Key**: `NEXT_PUBLIC_BACKEND_URL`
+   * **Value**: `https://tpoapi.shubhashish.me`
+3. Click **Save** and trigger a **Redeploy** on Vercel.
+
+---
+
+## 4. Manual Redeployment Playbook (Future Updates)
+
+Whenever you push new code changes or bug fixes to GitHub, SSH into the VM and run these commands:
 
 ```bash
-cd /absolute/path/to/tpo_college_work
-set -e
-git fetch origin main
-git reset --hard origin/main
-docker compose -f docker-compose.prod.yml down
+cd /path/to/tpo_college_work
+
+# 1. Pull latest code
+git pull origin main
+
+# 2. Rebuild and restart the backend container
 docker compose -f docker-compose.prod.yml up -d --build
+
+# 3. Clean up old unused build images to save disk space
 docker image prune -f
 ```
 
-Read the deployment logs and make a real HTTP request after every update:
+*(Docker Compose will automatically build the new image, stop the old container, and start the new container with zero to 2 seconds of downtime).*
 
-```bash
-docker compose -f docker-compose.prod.yml ps
-docker compose -f docker-compose.prod.yml logs --tail=100 backend
-curl --fail https://api.example.com/
-```
+---
 
-`docker image prune -f` removes dangling images only. It does not remove images used by running containers.
+## 5. Troubleshooting & Useful Commands
 
-## 7. Optional GitHub Actions deploy
-
-Add these repository secrets under **Settings → Secrets and variables → Actions**:
-
-| Secret | Value |
-| --- | --- |
-| `VM_HOST` | VM IP or hostname |
-| `VM_USER` | SSH deploy user |
-| `VM_SSH_KEY` | Full private deploy key |
-| `VM_PROJECT_PATH` | Absolute project path on the VM |
-
-The VM user must already have Docker permission, and the deploy key's public key must be in that user's `authorized_keys`.
-
-Example `.github/workflows/deploy.yml`:
-
-```yaml
-name: Deploy TPO Portal
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to VM
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.VM_SSH_KEY }}
-          script: |
-            set -e
-            cd "${{ secrets.VM_PROJECT_PATH }}"
-            git fetch origin main
-            git reset --hard origin/main
-            docker compose -f docker-compose.prod.yml down
-            docker compose -f docker-compose.prod.yml up -d --build
-            docker image prune -f
-            docker compose -f docker-compose.prod.yml ps
-```
-
-The VM's `.env` and `apps/backend/.env` are intentionally outside Git and survive code deployments. Never put `DATABASE_URL`, the Google service-account JSON, `ADMIN_PASSWORD`, or `SESSION_SECRET` in GitHub workflow YAML or in the repository.
-
-## Troubleshooting
-
-### Check ports before choosing different ones
-
-```bash
-sudo ss -tulpn | grep LISTEN
-```
-
-If `3011` is occupied, set a different `BACKEND_PORT` value in the VM root `.env`, then update the matching Caddy upstream.
-
-### Container is restarting
-
-```bash
-docker compose -f docker-compose.prod.yml ps
-docker compose -f docker-compose.prod.yml logs --tail=200 backend
-```
-
-Common causes are an invalid Neon URL, missing Google credentials, missing `SESSION_SECRET`, or a failed Prisma migration.
-
-### Caddy returns 502
-
-Confirm the relevant container is running and the loopback port responds:
-
-```bash
-docker compose -f docker-compose.prod.yml ps
-curl -v http://127.0.0.1:3011/
-journalctl -u caddy --no-pager -n 50
-```
-
-### Browser reports a CORS or cookie error
-
-Check that `FRONTEND_URL` exactly matches the externally hosted frontend origin. Production cookies require HTTPS. After changing it:
-
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-```
+| Task | Command |
+| :--- | :--- |
+| **View live logs** | `docker compose -f docker-compose.prod.yml logs -f --tail 100` |
+| **Restart container** | `docker compose -f docker-compose.prod.yml restart` |
+| **Stop container** | `docker compose -f docker-compose.prod.yml down` |
+| **Check Caddy status** | `sudo systemctl status caddy` |
+| **Check Caddy logs** | `sudo journalctl -u caddy -f --no-tail` |
+| **Test local container port** | `curl -i http://127.0.0.1:3011/` |
+| **Test MySQL from container** | `docker compose -f docker-compose.prod.yml exec backend node -e "require('mysql2/promise').createConnection({host:'host.docker.internal',user:'gg_app_user',password:process.env.GG_DB_PASSWORD,database:'gg_app'}).then(()=>console.log('DB OK')).catch(console.error)"` |

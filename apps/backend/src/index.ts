@@ -18,6 +18,14 @@ import {
     getNewFiltersMeta,
     exportNewStudentsCSV,
 } from "./controllers/newArchitectureController";
+import {
+    searchStudentsForAcademic,
+    getAcademicRecords,
+    upsertSingleAcademicRecord,
+    bulkUpsertAcademicRecords,
+    deleteAcademicRecord,
+    downloadAcademicCSVTemplate,
+} from "./controllers/academicUploadController";
 import { validateToken, checkSession } from "./controllers/tokenController";
 import { adminLogin, listTokens, createToken, revokeToken, updateTokenExpiry } from "./controllers/adminController";
 import { tokenAuth } from "./middleware/tokenAuth";
@@ -67,6 +75,14 @@ app.get("/api/new/semesters", getNewSemesters);
 app.get("/api/new/filters-meta", getNewFiltersMeta);
 app.get("/api/new/export", exportNewStudentsCSV);
 app.get("/api/new/students", getNewStudents);
+
+// Academic Upload Architecture Routes (students_acadmic_details)
+app.get("/api/academic/students-search", searchStudentsForAcademic);
+app.get("/api/academic/records", getAcademicRecords);
+app.post("/api/academic/single-entry", upsertSingleAcademicRecord);
+app.post("/api/academic/bulk-upload", bulkUpsertAcademicRecords);
+app.delete("/api/academic/records/:id", deleteAcademicRecord);
+app.get("/api/academic/template.csv", downloadAcademicCSVTemplate);
 
 // Admin Routes
 app.post("/api/admin/login", adminLogin);

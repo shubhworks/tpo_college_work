@@ -80,3 +80,13 @@ export const newArchitectureAPI = {
     return url.toString();
   },
 }
+
+export const academicAPI = {
+  searchStudents: (q: string) => apiClient.get("/api/academic/students-search", { params: { q } }),
+  getRecords: (params?: { page?: number; limit?: number; search?: string }) =>
+    apiClient.get("/api/academic/records", { params }),
+  upsertSingle: (data: any) => apiClient.post("/api/academic/single-entry", data),
+  bulkUpload: (entries: any[]) => apiClient.post("/api/academic/bulk-upload", { entries }),
+  deleteRecord: (id: number) => apiClient.delete(`/api/academic/records/${id}`),
+  getTemplateUrl: () => `${API_BASE_URL}/api/academic/template.csv`,
+}

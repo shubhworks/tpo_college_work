@@ -407,7 +407,7 @@ export default function AcademicUploadPage() {
               }`}
             >
               <Edit3 className="w-4 h-4" />
-              1. Direct Student Form
+              Direct Student Form
             </button>
 
             {/* <button
@@ -422,7 +422,7 @@ export default function AcademicUploadPage() {
               2. Bulk CSV / Excel Upload
             </button> */}
 
-            {/* <button
+            <button
               onClick={() => setActiveTab("records")}
               className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition ${
                 activeTab === "records"
@@ -431,8 +431,8 @@ export default function AcademicUploadPage() {
               }`}
             >
               <Layers className="w-4 h-4" />
-              3. View All Records ({totalRecords})
-            </button> */}
+              View All Records
+            </button>
           </div>
         </div>
 

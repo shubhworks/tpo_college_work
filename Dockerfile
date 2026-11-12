@@ -47,6 +47,8 @@ COPY --from=backend-builder /app/apps/backend/dist ./dist
 COPY --from=backend-builder /app/apps/backend/prisma ./prisma
 COPY --from=backend-builder /app/apps/backend/prisma.config.ts ./prisma.config.ts
 
+RUN ./node_modules/.bin/prisma generate
+
 EXPOSE 3001
 
 CMD ["node", "dist/src/index.js"]

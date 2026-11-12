@@ -14,6 +14,8 @@ services:
       - ./node_modules/.bin/prisma migrate deploy && node dist/src/index.js
     ports:
       - "127.0.0.1:${BACKEND_PORT:-3011}:3001"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     healthcheck:
       test:

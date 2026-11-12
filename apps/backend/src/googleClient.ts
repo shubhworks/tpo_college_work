@@ -2,6 +2,8 @@ import { google } from "googleapis";
 import path from "path";
 import dotenv from "dotenv";
 
+dotenv.config({ path: path.resolve(process.cwd(), "apps/backend/.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 dotenv.config();
 
 if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {

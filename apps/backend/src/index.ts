@@ -9,11 +9,24 @@ import {
     getStudentCertificates,
     getBatches
 } from "./studentsControllers";
+import {
+    getNewBatches,
+    getNewCourses,
+    getNewBranches,
+    getNewSemesters,
+    getNewStudents,
+    getNewFiltersMeta,
+    exportNewStudentsCSV,
+} from "./controllers/newArchitectureController";
 import { validateToken, checkSession } from "./controllers/tokenController";
 import { adminLogin, listTokens, createToken, revokeToken, updateTokenExpiry } from "./controllers/adminController";
 import { tokenAuth } from "./middleware/tokenAuth";
 import { adminAuth } from "./middleware/adminAuth";
 
+import path from "path";
+
+dotenv.config({ path: path.resolve(process.cwd(), "apps/backend/.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 dotenv.config();
 
 const app = express();
@@ -45,6 +58,15 @@ app.get("/" , (req,res) => {
 // Public Token Validation
 app.post("/api/validate-token", validateToken);
 app.get("/api/check-session", tokenAuth, checkSession);
+
+// New Database Architecture Routes (Live MySQL gg_app)
+app.get("/api/new/batches", getNewBatches);
+app.get("/api/new/courses", getNewCourses);
+app.get("/api/new/branches", getNewBranches);
+app.get("/api/new/semesters", getNewSemesters);
+app.get("/api/new/filters-meta", getNewFiltersMeta);
+app.get("/api/new/export", exportNewStudentsCSV);
+app.get("/api/new/students", getNewStudents);
 
 // Admin Routes
 app.post("/api/admin/login", adminLogin);

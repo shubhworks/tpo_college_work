@@ -50,7 +50,7 @@ export function MasterFilterPanel({
     filters.batch !== "2024-2028" && filters.batch !== "ALL",
     filters.course !== "B.Tech" && filters.course !== "ALL",
     branchCount > 0,
-    filters.semester !== "ALL",
+    Boolean(filters.department && filters.department !== "ALL"),
     Boolean(filters.minCgpa),
     Boolean(filters.min10th),
     Boolean(filters.min12th),
@@ -246,17 +246,17 @@ export function MasterFilterPanel({
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
-                    Semester
+                    Department
                   </label>
                   <select
-                    value={filters.semester}
-                    onChange={(e) => onChange({ ...filters, semester: e.target.value })}
+                    value={filters.department}
+                    onChange={(e) => onChange({ ...filters, department: e.target.value })}
                     className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-2xs"
                   >
-                    <option value="ALL">All Semesters</option>
-                    {meta?.semesters.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
+                    <option value="ALL">All Departments</option>
+                    {meta?.departments?.map((d) => (
+                      <option key={d.id} value={d.name}>
+                        {d.name} {d.studentCount ? `(${d.studentCount})` : ""}
                       </option>
                     ))}
                   </select>
@@ -603,10 +603,10 @@ export function MasterFilterPanel({
             </span>
           ))}
 
-          {filters.semester !== "ALL" && (
+          {filters.department && filters.department !== "ALL" && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 text-slate-800 rounded-lg font-medium shadow-2xs">
-              {filters.semester}
-              <button type="button" onClick={() => onChange({ ...filters, semester: "ALL" })}>
+              Dept: {filters.department}
+              <button type="button" onClick={() => onChange({ ...filters, department: "ALL" })}>
                 <X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-700" />
               </button>
             </span>

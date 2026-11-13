@@ -42,6 +42,10 @@ export interface StudentV2 {
     id: number | null;
     name: string;
   };
+  department?: {
+    id: number | null;
+    name: string | null;
+  } | null;
   branch: {
     id: number | null;
     name: string;
@@ -93,10 +97,17 @@ export interface BranchItem {
   isActive?: number;
 }
 
+export interface DepartmentItem {
+  id: number;
+  name: string;
+  studentCount?: number;
+}
+
 export interface FilterMeta {
   batches: BatchItem[];
   courses: CourseItem[];
   branches: BranchItem[];
+  departments: DepartmentItem[];
   semesters: string[];
   skills: string[];
   genders: string[];
@@ -106,8 +117,9 @@ export interface FilterMeta {
 export interface MasterFilterState {
   batch: string;
   course: string;
+  department: string;
   branches: string[]; // multi-select
-  semester: string;
+  semester?: string;
   minCgpa: string;
   min10th: string;
   min12th: string;

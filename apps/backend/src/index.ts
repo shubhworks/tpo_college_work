@@ -13,6 +13,7 @@ import {
     getNewBatches,
     getNewCourses,
     getNewBranches,
+    getNewDepartments,
     getNewSemesters,
     getNewStudents,
     getNewFiltersMeta,
@@ -71,6 +72,7 @@ app.get("/api/check-session", tokenAuth, checkSession);
 app.get("/api/new/batches", getNewBatches);
 app.get("/api/new/courses", getNewCourses);
 app.get("/api/new/branches", getNewBranches);
+app.get("/api/new/departments", getNewDepartments);
 app.get("/api/new/semesters", getNewSemesters);
 app.get("/api/new/filters-meta", getNewFiltersMeta);
 app.get("/api/new/export", exportNewStudentsCSV);

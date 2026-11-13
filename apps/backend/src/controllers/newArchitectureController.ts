@@ -153,6 +153,42 @@ export async function getNewBranches(req: Request, res: Response) {
 }
 
 /**
+ * GET /api/new/departments
+ * Returns active academic departments that have enrolled students
+ */
+export async function getNewDepartments(req: Request, res: Response) {
+  try {
+    const pool = getMySQLPool();
+    const [rows] = await pool.query<any[]>(`
+      SELECT 
+        d.id, 
+        d.department_name AS name,
+        COUNT(DISTINCT s.id) AS studentCount
+      FROM department d
+      INNER JOIN classes cl ON cl.department_id = d.id
+      INNER JOIN (
+        SELECT student_id, MAX(id) as max_ss_id
+        FROM student_session
+        GROUP BY student_id
+      ) latest_ss
+      INNER JOIN student_session ss ON ss.id = latest_ss.max_ss_id AND ss.class_id = cl.id
+      INNER JOIN students s ON s.id = ss.student_id AND (s.is_active = 'yes' OR s.is_active = 1)
+      WHERE d.is_active = 'yes'
+      GROUP BY d.id, d.department_name
+      ORDER BY d.department_name ASC
+    `);
+
+    res.json({
+      success: true,
+      data: rows,
+    });
+  } catch (error: any) {
+    console.error("Failed to fetch departments from MySQL:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
  * GET /api/new/semesters
  */
 export async function getNewSemesters(req: Request, res: Response) {
@@ -196,6 +232,26 @@ export async function getNewFiltersMeta(req: Request, res: Response) {
       SELECT id, name, code FROM branch WHERE is_active = 1 OR is_active IS NULL ORDER BY name ASC
     `);
 
+    // Dynamic departments with enrolled students
+    const [departments] = await pool.query<any[]>(`
+      SELECT 
+        d.id, 
+        d.department_name AS name,
+        COUNT(DISTINCT s.id) AS studentCount
+      FROM department d
+      INNER JOIN classes cl ON cl.department_id = d.id
+      INNER JOIN (
+        SELECT student_id, MAX(id) as max_ss_id
+        FROM student_session
+        GROUP BY student_id
+      ) latest_ss
+      INNER JOIN student_session ss ON ss.id = latest_ss.max_ss_id AND ss.class_id = cl.id
+      INNER JOIN students s ON s.id = ss.student_id AND (s.is_active = 'yes' OR s.is_active = 1)
+      WHERE d.is_active = 'yes'
+      GROUP BY d.id, d.department_name
+      ORDER BY d.department_name ASC
+    `);
+
     // Distinct skills
     const [skillsRows] = await pool.query<any[]>(`
       SELECT DISTINCT skill_name FROM student_skills WHERE skill_name IS NOT NULL AND skill_name != '' ORDER BY skill_name ASC
@@ -214,6 +270,7 @@ export async function getNewFiltersMeta(req: Request, res: Response) {
         batches,
         courses,
         branches,
+        departments,
         semesters: ["Sem I", "Sem II", "Sem III", "Sem IV", "Sem V", "Sem VI", "Sem VII", "Sem VIII"],
         skills,
         genders: ["Male", "Female"],
@@ -243,6 +300,7 @@ function buildMasterFilterSQL(query: any) {
   const batchQuery = query.batch as string | undefined;
   const courseQuery = query.course as string | undefined;
   const branchQuery = query.branch as string | undefined;
+  const departmentQuery = (query.department || query.department_id) as string | undefined;
   const semesterQuery = query.semester as string | undefined;
   const searchQuery = (query.search as string | undefined)?.trim();
 
@@ -319,7 +377,18 @@ function buildMasterFilterSQL(query: any) {
     }
   }
 
-  // Semester Filter
+  // Department Filter
+  if (departmentQuery && departmentQuery !== "ALL") {
+    if (/^\d+$/.test(departmentQuery)) {
+      whereConditions.push("(dept.id = ? OR s.departmentID = ?)");
+      params.push(parseInt(departmentQuery, 10), parseInt(departmentQuery, 10));
+    } else {
+      whereConditions.push("(dept.department_name = ? OR dept.department_name LIKE ?)");
+      params.push(departmentQuery, `%${departmentQuery}%`);
+    }
+  }
+
+  // Semester Filter (optional / legacy)
   if (semesterQuery && semesterQuery !== "ALL") {
     const semMatch = semesterQuery.match(/(?:Sem\s*)?(I{1,3}|IV|V?I{0,3}|\d+)/i);
     const semVal = semMatch ? semMatch[1] : semesterQuery;
@@ -445,6 +514,7 @@ function buildMasterFilterSQL(query: any) {
       (cl.class IS NOT NULL AND cl.class LIKE CONCAT('%', br.name, '%')) OR
       (s.admission_no IS NOT NULL AND s.admission_no LIKE CONCAT('%', br.code, '%'))
     )
+    LEFT JOIN department dept ON dept.id = COALESCE(NULLIF(cl.department_id, 0), NULLIF(s.departmentID, 0))
     LEFT JOIN students_acadmic_details sad ON sad.student_id = s.id
   `;
 
@@ -498,6 +568,8 @@ export async function getNewStudents(req: Request, res: Response) {
         b.batchName AS batch_name,
         c.id AS course_id,
         c.courseName AS course_name,
+        dept.id AS department_id,
+        dept.department_name AS department_name,
         cl.class AS class_name,
         sec.section AS section_name,
         br.id AS branch_id,
@@ -637,6 +709,10 @@ export async function getNewStudents(req: Request, res: Response) {
           id: r.course_id || null,
           name: r.course_name || "B.Tech",
         },
+        department: {
+          id: r.department_id || null,
+          name: r.department_name || null,
+        },
         branch: {
           id: r.branch_id || null,
           name: branchName,
@@ -711,6 +787,8 @@ export async function exportNewStudentsCSV(req: Request, res: Response) {
         s.cast,
         b.batchName AS batch_name,
         c.courseName AS course_name,
+        dept.id AS department_id,
+        dept.department_name AS department_name,
         cl.class AS class_name,
         sec.section AS section_name,
         br.name AS branch_name,
@@ -746,6 +824,7 @@ export async function exportNewStudentsCSV(req: Request, res: Response) {
       "Admission No",
       "Full Name",
       "Course",
+      "Department",
       "Branch",
       "Batch",
       "Semester",
@@ -783,6 +862,7 @@ export async function exportNewStudentsCSV(req: Request, res: Response) {
         escapeCSV(r.admission_no || ""),
         escapeCSV(fullName || "Unnamed"),
         escapeCSV(r.course_name || "B.Tech"),
+        escapeCSV(r.department_name || "N/A"),
         escapeCSV(branch),
         escapeCSV(r.batch_name || "N/A"),
         escapeCSV(semester),

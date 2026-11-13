@@ -44,11 +44,13 @@ export const newArchitectureAPI = {
   getBatches: () => apiClient.get("/api/new/batches"),
   getCourses: () => apiClient.get("/api/new/courses"),
   getBranches: () => apiClient.get("/api/new/branches"),
+  getDepartments: () => apiClient.get("/api/new/departments"),
   getSemesters: () => apiClient.get("/api/new/semesters"),
   getFiltersMeta: () => apiClient.get("/api/new/filters-meta"),
   getStudents: (params?: {
     batch?: string;
     course?: string;
+    department?: string;
     branch?: string;
     semester?: string;
     search?: string;

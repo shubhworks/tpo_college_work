@@ -14,8 +14,8 @@ import { Database, Search, Users, AlertCircle, RefreshCw } from "lucide-react"
 const defaultFilters: MasterFilterState = {
   batch: "2024-2028",
   course: "B.Tech",
+  department: "ALL",
   branches: [],
-  semester: "ALL",
   minCgpa: "",
   min10th: "",
   min12th: "",
@@ -75,8 +75,8 @@ export default function NewArchitecturePage() {
       const response = await newArchitectureAPI.getStudents({
         batch: filters.batch === "ALL" ? undefined : filters.batch,
         course: filters.course === "ALL" ? undefined : filters.course,
+        department: filters.department === "ALL" ? undefined : filters.department,
         branch: filters.branches.length > 0 ? filters.branches.join(",") : undefined,
-        semester: filters.semester === "ALL" ? undefined : filters.semester,
         minCgpa: filters.minCgpa || undefined,
         min10th: filters.min10th || undefined,
         min12th: filters.min12th || undefined,
@@ -139,8 +139,8 @@ export default function NewArchitecturePage() {
       const exportParams = {
         batch: filters.batch === "ALL" ? undefined : filters.batch,
         course: filters.course === "ALL" ? undefined : filters.course,
+        department: filters.department === "ALL" ? undefined : filters.department,
         branch: filters.branches.length > 0 ? filters.branches.join(",") : undefined,
-        semester: filters.semester === "ALL" ? undefined : filters.semester,
         minCgpa: filters.minCgpa || undefined,
         min10th: filters.min10th || undefined,
         min12th: filters.min12th || undefined,

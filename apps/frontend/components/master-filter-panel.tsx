@@ -27,7 +27,7 @@ interface MasterFilterPanelProps {
   isExporting?: boolean
 }
 
-type TabType = "hierarchy" | "branches" | "cutoffs" | "skills"
+type TabType = "hierarchy" | "cutoffs" | "skills"
 
 export function MasterFilterPanel({
   meta,
@@ -42,15 +42,15 @@ export function MasterFilterPanel({
   const [isExpanded, setIsExpanded] = useState<boolean>(true)
 
   // Active filter counters
-  const branchCount = filters.branches.length
+  const selectedDepts = filters.departments || (filters.department && filters.department !== "ALL" ? [filters.department] : [])
+  const deptCount = selectedDepts.length
   const cutoffCount = [Boolean(filters.minCgpa), Boolean(filters.min10th), Boolean(filters.min12th)].filter(Boolean).length
   const skillCount = filters.skills.length + (filters.hasVerifiedCert ? 1 : 0) + (filters.hasOtherCert ? 1 : 0)
 
   const totalActiveFilters = [
     filters.batch !== "2024-2028" && filters.batch !== "ALL",
     filters.course !== "B.Tech" && filters.course !== "ALL",
-    branchCount > 0,
-    Boolean(filters.department && filters.department !== "ALL"),
+    deptCount > 0,
     Boolean(filters.minCgpa),
     Boolean(filters.min10th),
     Boolean(filters.min12th),
@@ -61,22 +61,34 @@ export function MasterFilterPanel({
     filters.category !== "ALL",
   ].filter(Boolean).length
 
-  const handleBranchToggle = (branchName: string) => {
-    const exists = filters.branches.includes(branchName)
+  const handleDepartmentToggle = (deptName: string) => {
+    const exists = selectedDepts.includes(deptName)
     const updated = exists
-      ? filters.branches.filter((b) => b !== branchName)
-      : [...filters.branches, branchName]
-    onChange({ ...filters, branches: updated })
+      ? selectedDepts.filter((d) => d !== deptName)
+      : [...selectedDepts, deptName]
+    onChange({
+      ...filters,
+      departments: updated,
+      department: updated.length === 1 ? updated[0] : (updated.length > 1 ? updated.join(",") : "ALL"),
+    })
   }
 
-  const handleSelectAllBranches = () => {
-    if (!meta) return
-    const allNames = meta.branches.map((b) => b.name)
-    onChange({ ...filters, branches: allNames })
+  const handleSelectAllDepartments = () => {
+    if (!meta?.departments) return
+    const allNames = meta.departments.map((d) => d.name)
+    onChange({
+      ...filters,
+      departments: allNames,
+      department: allNames.join(","),
+    })
   }
 
-  const handleClearBranches = () => {
-    onChange({ ...filters, branches: [] })
+  const handleClearDepartments = () => {
+    onChange({
+      ...filters,
+      departments: [],
+      department: "ALL",
+    })
   }
 
   const handleSkillToggle = (skillName: string) => {
@@ -160,20 +172,7 @@ export function MasterFilterPanel({
               }`}
             >
               <Layers className="w-4 h-4" />
-              <span>Cohort & Program</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("branches")}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === "branches"
-                  ? "border-blue-600 text-blue-600 font-semibold"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Branches ({branchCount > 0 ? branchCount : "All"})</span>
+              <span>Cohort & Program {deptCount > 0 && `(${deptCount} depts)`}</span>
             </button>
 
             <button
@@ -205,137 +204,134 @@ export function MasterFilterPanel({
 
           {/* Tab Content Panels */}
           <div className="p-6">
-            {/* Tab 1: Cohort & Program */}
+            {/* Tab 1: Cohort & Program (Batch, Course, Gender, Multi-Select Departments) */}
             {activeTab === "hierarchy" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
-                    Graduation Batch
-                  </label>
-                  <select
-                    value={filters.batch}
-                    onChange={(e) => onChange({ ...filters, batch: e.target.value })}
-                    className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-2xs"
-                  >
-                    <option value="ALL">All Batches</option>
-                    {meta?.batches.map((b) => (
-                      <option key={b.id} value={b.name}>
-                        {b.name} ({b.studentCount || 0} students)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
-                    Course / Degree
-                  </label>
-                  <select
-                    value={filters.course}
-                    onChange={(e) => onChange({ ...filters, course: e.target.value })}
-                    className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-2xs"
-                  >
-                    <option value="ALL">All Courses</option>
-                    {meta?.courses.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
-                    Department
-                  </label>
-                  <select
-                    value={filters.department}
-                    onChange={(e) => onChange({ ...filters, department: e.target.value })}
-                    className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-2xs"
-                  >
-                    <option value="ALL">All Departments</option>
-                    {meta?.departments?.map((d) => (
-                      <option key={d.id} value={d.name}>
-                        {d.name} {d.studentCount ? `(${d.studentCount})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
-                    Gender (Diversity)
-                  </label>
-                  <select
-                    value={filters.gender}
-                    onChange={(e) => onChange({ ...filters, gender: e.target.value })}
-                    className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-2xs"
-                  >
-                    <option value="ALL">All Genders</option>
-                    <option value="Male">Male Candidates</option>
-                    <option value="Female">Female Candidates</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {/* Tab 2: Branches */}
-            {activeTab === "branches" && (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-slate-500">
-                    Select eligible branches for this recruitment drive (defaults to all if none selected):
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleSelectAllBranches}
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                      Graduation Batch
+                    </label>
+                    <select
+                      value={filters.batch}
+                      onChange={(e) => onChange({ ...filters, batch: e.target.value })}
+                      className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-2xs"
                     >
-                      Select All
-                    </button>
-                    <span className="text-slate-300">·</span>
-                    <button
-                      type="button"
-                      onClick={handleClearBranches}
-                      className="text-xs font-semibold text-slate-500 hover:text-slate-800"
+                      <option value="ALL">All Batches</option>
+                      {meta?.batches.map((b) => (
+                        <option key={b.id} value={b.name}>
+                          {b.name} ({b.studentCount || 0} students)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                      Course / Degree
+                    </label>
+                    <select
+                      value={filters.course}
+                      onChange={(e) => onChange({ ...filters, course: e.target.value })}
+                      className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-2xs"
                     >
-                      Clear
-                    </button>
+                      <option value="ALL">All Courses</option>
+                      {meta?.courses.map((c) => (
+                        <option key={c.id} value={c.name}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                      Gender (Diversity)
+                    </label>
+                    <select
+                      value={filters.gender}
+                      onChange={(e) => onChange({ ...filters, gender: e.target.value })}
+                      className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-2xs"
+                    >
+                      <option value="ALL">All Genders</option>
+                      <option value="Male">Male Candidates</option>
+                      <option value="Female">Female Candidates</option>
+                    </select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
-                  {meta?.branches.map((b) => {
-                    const isSelected = filters.branches.includes(b.name)
-                    return (
+                {/* Multi-Select Departments Section */}
+                <div className="pt-5 border-t border-slate-100">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                        Academic Departments
+                      </span>
+                      {selectedDepts.length > 0 ? (
+                        <span className="px-2.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+                          {selectedDepts.length} selected ({selectedDepts.join(", ")})
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400 font-medium">
+                          (Defaults to all departments)
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
                       <button
-                        key={b.id}
                         type="button"
-                        onClick={() => handleBranchToggle(b.name)}
-                        className={`p-3 rounded-xl border text-left transition-all flex items-center justify-between gap-2 ${
-                          isSelected
-                            ? "bg-slate-900 border-slate-900 text-white shadow-2xs"
-                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
-                        }`}
+                        onClick={handleSelectAllDepartments}
+                        className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition"
                       >
-                        <div className="min-w-0">
-                          <span className="text-xs font-bold block truncate">{b.name}</span>
-                          {b.code && (
-                            <span className={`text-[11px] block mt-0.5 ${isSelected ? "text-slate-300" : "text-slate-400"}`}>
-                              Code: {b.code}
-                            </span>
-                          )}
-                        </div>
-                        {isSelected && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
+                        Select All
                       </button>
-                    )
-                  })}
+                      <span className="text-slate-300">·</span>
+                      <button
+                        type="button"
+                        onClick={handleClearDepartments}
+                        className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
+                      >
+                        Clear Selection
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+                    {meta?.departments?.map((d) => {
+                      const isSelected = selectedDepts.includes(d.name)
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => handleDepartmentToggle(d.name)}
+                          className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-2 shadow-2xs ${
+                            isSelected
+                              ? "bg-slate-900 border-slate-900 text-white shadow-sm"
+                              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold block truncate">{d.name}</span>
+                            {d.studentCount !== undefined && (
+                              <span
+                                className={`text-[11px] block mt-0.5 ${
+                                  isSelected ? "text-slate-300" : "text-slate-400"
+                                }`}
+                              >
+                                {d.studentCount} students
+                              </span>
+                            )}
+                          </div>
+                          {isSelected && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Tab 3: Academic Cutoffs */}
+            {/* Tab 2: Academic Cutoffs */}
             {activeTab === "cutoffs" && (
               <div>
                 <p className="text-xs text-slate-500 font-medium mb-4">
@@ -591,26 +587,17 @@ export function MasterFilterPanel({
             </span>
           )}
 
-          {filters.branches.map((b) => (
+          {selectedDepts.map((d) => (
             <span
-              key={b}
+              key={d}
               className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg font-medium shadow-2xs"
             >
-              Branch: {b}
-              <button type="button" onClick={() => handleBranchToggle(b)}>
+              Dept: {d}
+              <button type="button" onClick={() => handleDepartmentToggle(d)}>
                 <X className="w-3.5 h-3.5 text-blue-400 hover:text-blue-700" />
               </button>
             </span>
           ))}
-
-          {filters.department && filters.department !== "ALL" && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 text-slate-800 rounded-lg font-medium shadow-2xs">
-              Dept: {filters.department}
-              <button type="button" onClick={() => onChange({ ...filters, department: "ALL" })}>
-                <X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-700" />
-              </button>
-            </span>
-          )}
 
           {filters.minCgpa && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg font-medium shadow-2xs">

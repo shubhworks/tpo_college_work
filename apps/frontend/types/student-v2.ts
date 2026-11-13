@@ -117,8 +117,9 @@ export interface FilterMeta {
 export interface MasterFilterState {
   batch: string;
   course: string;
-  department: string;
-  branches: string[]; // multi-select
+  departments: string[]; // multi-select e.g. ["AIML", "IOT"]
+  department?: string;
+  branches?: string[];
   semester?: string;
   minCgpa: string;
   min10th: string;

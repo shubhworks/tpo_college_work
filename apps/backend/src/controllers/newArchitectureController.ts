@@ -300,7 +300,7 @@ function buildMasterFilterSQL(query: any) {
   const batchQuery = query.batch as string | undefined;
   const courseQuery = query.course as string | undefined;
   const branchQuery = query.branch as string | undefined;
-  const departmentQuery = (query.department || query.department_id) as string | undefined;
+  const departmentQuery = (query.department || query.departments || query.department_id) as string | undefined;
   const semesterQuery = query.semester as string | undefined;
   const searchQuery = (query.search as string | undefined)?.trim();
 
@@ -377,14 +377,35 @@ function buildMasterFilterSQL(query: any) {
     }
   }
 
-  // Department Filter
+  // Department Filter (supports multi-select e.g. "AIML,IOT" or IDs e.g. "15,21")
   if (departmentQuery && departmentQuery !== "ALL") {
-    if (/^\d+$/.test(departmentQuery)) {
-      whereConditions.push("(dept.id = ? OR s.departmentID = ?)");
-      params.push(parseInt(departmentQuery, 10), parseInt(departmentQuery, 10));
-    } else {
-      whereConditions.push("(dept.department_name = ? OR dept.department_name LIKE ?)");
-      params.push(departmentQuery, `%${departmentQuery}%`);
+    const depts = departmentQuery.split(",").map((d) => d.trim()).filter(Boolean);
+    if (depts.length === 1) {
+      if (/^\d+$/.test(depts[0])) {
+        whereConditions.push("(dept.id = ? OR s.departmentID = ?)");
+        params.push(parseInt(depts[0], 10), parseInt(depts[0], 10));
+      } else {
+        whereConditions.push("(dept.department_name = ? OR dept.department_name LIKE ?)");
+        params.push(depts[0], `%${depts[0]}%`);
+      }
+    } else if (depts.length > 1) {
+      const numericDepts = depts.filter((d) => /^\d+$/.test(d)).map((d) => parseInt(d, 10));
+      const stringDepts = depts.filter((d) => !/^\d+$/.test(d));
+
+      const deptClauses: string[] = [];
+      if (numericDepts.length > 0) {
+        const numPlaceholders = numericDepts.map(() => "?").join(",");
+        deptClauses.push(`dept.id IN (${numPlaceholders}) OR s.departmentID IN (${numPlaceholders})`);
+        params.push(...numericDepts, ...numericDepts);
+      }
+      if (stringDepts.length > 0) {
+        const strPlaceholders = stringDepts.map(() => "?").join(",");
+        deptClauses.push(`dept.department_name IN (${strPlaceholders})`);
+        params.push(...stringDepts);
+      }
+      if (deptClauses.length > 0) {
+        whereConditions.push(`(${deptClauses.join(" OR ")})`);
+      }
     }
   }
 

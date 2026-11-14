@@ -81,7 +81,7 @@ export function NewStudentModal({ student, onClose }: NewStudentModalProps) {
                       {student.rollNo}
                     </span>
                     <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">
-                      {student.course.name} · {student.branch.name}
+                      {student.course.name} · {student.department?.name || student.branch?.name || "General"}
                     </span>
                     {student.semester && (
                       <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">

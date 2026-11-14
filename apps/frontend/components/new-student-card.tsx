@@ -52,10 +52,10 @@ export function NewStudentCard({ student, onOpenProfile }: NewStudentCardProps) 
           {student.rollNo}
         </p>
 
-        {/* Primary Tags: Course, Branch, Batch, Sem */}
+        {/* Primary Tags: Course, Department/Branch, Batch, Sem */}
         <div className="flex flex-wrap justify-center gap-1.5 mb-3">
           <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[10px] font-bold tracking-wide uppercase">
-            {student.branch.name}
+            {student.department?.name || student.branch?.name || "General"}
           </span>
           {student.semester && (
             <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-full text-[10px] font-bold tracking-wide uppercase">

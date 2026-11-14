@@ -531,11 +531,11 @@ function buildMasterFilterSQL(query: any) {
     ) latest ON latest.student_id = s.id
     LEFT JOIN classes cl ON cl.id = latest.class_id
     LEFT JOIN sections sec ON sec.id = latest.section_id
-    LEFT JOIN branch br ON (
-      (cl.class IS NOT NULL AND cl.class LIKE CONCAT('%', br.name, '%')) OR
-      (s.admission_no IS NOT NULL AND s.admission_no LIKE CONCAT('%', br.code, '%'))
-    )
     LEFT JOIN department dept ON dept.id = COALESCE(NULLIF(cl.department_id, 0), NULLIF(s.departmentID, 0))
+    LEFT JOIN branch br ON (
+      (dept.department_name IS NOT NULL AND br.name = dept.department_name) OR
+      (dept.department_name IS NULL AND s.admission_no IS NOT NULL AND s.admission_no LIKE CONCAT('%', br.code, '%'))
+    )
     LEFT JOIN students_acadmic_details sad ON sad.student_id = s.id
   `;
 
@@ -692,9 +692,9 @@ export async function getNewStudents(req: Request, res: Response) {
       const fullName = [r.firstname, r.middlename, r.lastname].filter(Boolean).join(" ").trim();
       const semester = extractSemester(r.class_name);
 
-      let branchName = r.branch_name || "General";
+      let branchName = r.department_name || r.branch_name || "General";
       let branchCode = r.branch_code || null;
-      if (!r.branch_name && r.class_name) {
+      if (!branchName && r.class_name) {
         const parts = r.class_name.split(" ");
         branchName = parts[parts.length - 1] || "General";
       }
@@ -875,7 +875,7 @@ export async function exportNewStudentsCSV(req: Request, res: Response) {
     for (const r of rows) {
       const fullName = [r.firstname, r.middlename, r.lastname].filter(Boolean).join(" ").trim();
       const semester = extractSemester(r.class_name) || "N/A";
-      const branch = r.branch_name || (r.class_name ? r.class_name.split(" ").pop() : "General");
+      const branch = r.department_name || r.branch_name || (r.class_name ? r.class_name.split(" ").pop() : "General");
       const skills = (skillsByStudentId[r.id] || []).join("; ");
 
       const rowData = [

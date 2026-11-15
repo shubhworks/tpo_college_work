@@ -103,11 +103,23 @@ export interface DepartmentItem {
   studentCount?: number;
 }
 
+export interface AcademyCertificateItem {
+  id: number;
+  name: string;
+}
+
+export interface AcademyItem {
+  id: number;
+  name: string;
+  certificates: AcademyCertificateItem[];
+}
+
 export interface FilterMeta {
   batches: BatchItem[];
   courses: CourseItem[];
   branches: BranchItem[];
   departments: DepartmentItem[];
+  academies?: AcademyItem[];
   semesters: string[];
   skills: string[];
   genders: string[];
@@ -128,6 +140,8 @@ export interface MasterFilterState {
   skillsMatch: "any" | "all";
   hasVerifiedCert: boolean;
   hasOtherCert: boolean;
+  selectedAcademy?: string; // "ALL" or academy name/id
+  selectedCertificate?: string; // "ALL" or specific cert name
   gender: string;
   category: string;
   search: string;

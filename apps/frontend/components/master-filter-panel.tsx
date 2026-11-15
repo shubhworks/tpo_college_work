@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useMemo, useEffect } from "react"
 import {
   Award,
   Check,
@@ -40,12 +40,46 @@ export function MasterFilterPanel({
 }: MasterFilterPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>("hierarchy")
   const [isExpanded, setIsExpanded] = useState<boolean>(true)
+  const [isDeptDropdownOpen, setIsDeptDropdownOpen] = useState<boolean>(false)
+  const deptDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close department dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (deptDropdownRef.current && !deptDropdownRef.current.contains(event.target as Node)) {
+        setIsDeptDropdownOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   // Active filter counters
   const selectedDepts = filters.departments || (filters.department && filters.department !== "ALL" ? [filters.department] : [])
   const deptCount = selectedDepts.length
   const cutoffCount = [Boolean(filters.minCgpa), Boolean(filters.min10th), Boolean(filters.min12th)].filter(Boolean).length
-  const skillCount = filters.skills.length + (filters.hasVerifiedCert ? 1 : 0) + (filters.hasOtherCert ? 1 : 0)
+
+  // Academy & Certification filter helpers
+  const hasAcademyFilter = Boolean(filters.selectedAcademy && filters.selectedAcademy !== "ALL")
+  const hasCertFilter = Boolean(filters.selectedCertificate && filters.selectedCertificate !== "ALL")
+
+  const availableCertificates = useMemo(() => {
+    if (!meta?.academies) return []
+    if (filters.selectedAcademy && filters.selectedAcademy !== "ALL") {
+      const found = meta.academies.find(
+        (a) => a.name === filters.selectedAcademy || String(a.id) === filters.selectedAcademy
+      )
+      return found?.certificates || []
+    }
+    return meta.academies.flatMap((a) => a.certificates || [])
+  }, [meta?.academies, filters.selectedAcademy])
+
+  const skillCount =
+    filters.skills.length +
+    (filters.hasVerifiedCert ? 1 : 0) +
+    (filters.hasOtherCert ? 1 : 0) +
+    (hasAcademyFilter ? 1 : 0) +
+    (hasCertFilter ? 1 : 0)
 
   const totalActiveFilters = [
     filters.batch !== "2024-2028" && filters.batch !== "ALL",
@@ -57,6 +91,8 @@ export function MasterFilterPanel({
     filters.skills.length > 0,
     filters.hasVerifiedCert,
     filters.hasOtherCert,
+    hasAcademyFilter,
+    hasCertFilter,
     filters.gender !== "ALL",
     filters.category !== "ALL",
   ].filter(Boolean).length
@@ -204,10 +240,11 @@ export function MasterFilterPanel({
 
           {/* Tab Content Panels */}
           <div className="p-6">
-            {/* Tab 1: Cohort & Program (Batch, Course, Gender, Multi-Select Departments) */}
+            {/* Tab 1: Cohort & Program (Batch, Course, Multi-Select Departments Dropdown, Gender) */}
             {activeTab === "hierarchy" && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* 1. Graduation Batch */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
                       Graduation Batch
@@ -226,6 +263,7 @@ export function MasterFilterPanel({
                     </select>
                   </div>
 
+                  {/* 2. Course / Degree */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
                       Course / Degree
@@ -244,6 +282,121 @@ export function MasterFilterPanel({
                     </select>
                   </div>
 
+                  {/* 3. Academic Departments Dropdown (Space-saving Multi-Select Popover) */}
+                  <div className="relative" ref={deptDropdownRef}>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Academic Department
+                      </label>
+                      {selectedDepts.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleClearDepartments}
+                          className="text-[11px] font-semibold text-slate-400 hover:text-slate-700"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsDeptDropdownOpen(!isDeptDropdownOpen)}
+                      className={`w-full text-sm font-medium bg-white border rounded-xl px-3.5 py-2.5 text-left flex items-center justify-between transition-all shadow-2xs ${
+                        isDeptDropdownOpen
+                          ? "border-blue-500 ring-1 ring-blue-500"
+                          : "border-slate-300 hover:border-slate-400"
+                      }`}
+                    >
+                      <span className="truncate text-slate-800 text-xs sm:text-sm font-medium">
+                        {selectedDepts.length === 0
+                          ? "All Departments"
+                          : selectedDepts.length === 1
+                          ? selectedDepts[0]
+                          : selectedDepts.length === 2
+                          ? selectedDepts.join(", ")
+                          : `${selectedDepts.length} Selected (${selectedDepts.slice(0, 2).join(", ")}...)`}
+                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        {selectedDepts.length > 0 && (
+                          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">
+                            {selectedDepts.length}
+                          </span>
+                        )}
+                        <ChevronDown
+                          className={`w-4 h-4 text-slate-400 transition-transform ${
+                            isDeptDropdownOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </div>
+                    </button>
+
+                    {/* Multi-Select Floating Menu */}
+                    {isDeptDropdownOpen && (
+                      <div className="absolute left-0 right-0 z-50 mt-1.5 bg-white rounded-xl border border-slate-200 shadow-xl p-2.5 space-y-2 min-w-[270px]">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100 px-1">
+                          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                            Filter by Department
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={handleSelectAllDepartments}
+                              className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition"
+                            >
+                              Select All
+                            </button>
+                            <span className="text-slate-300">·</span>
+                            <button
+                              type="button"
+                              onClick={handleClearDepartments}
+                              className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="max-h-56 overflow-y-auto space-y-0.5 pr-1">
+                          {meta?.departments?.map((d) => {
+                            const isSelected = selectedDepts.includes(d.name)
+                            return (
+                              <button
+                                key={d.id}
+                                type="button"
+                                onClick={() => handleDepartmentToggle(d.name)}
+                                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
+                                  isSelected ? "bg-blue-50/80 text-blue-900 font-bold" : "text-slate-700 hover:bg-slate-50"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <div
+                                    className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                                      isSelected ? "bg-blue-600 border-blue-600 text-white" : "border-slate-300 bg-white"
+                                    }`}
+                                  >
+                                    {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                                  </div>
+                                  <span className="truncate">{d.name}</span>
+                                </div>
+                                {d.studentCount !== undefined && (
+                                  <span
+                                    className={`text-[10px] ml-2 shrink-0 ${
+                                      isSelected ? "text-blue-600 font-semibold" : "text-slate-400"
+                                    }`}
+                                  >
+                                    {d.studentCount}
+                                  </span>
+                                )}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 4. Gender (Diversity) */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
                       Gender (Diversity)
@@ -257,75 +410,6 @@ export function MasterFilterPanel({
                       <option value="Male">Male Candidates</option>
                       <option value="Female">Female Candidates</option>
                     </select>
-                  </div>
-                </div>
-
-                {/* Multi-Select Departments Section */}
-                <div className="pt-5 border-t border-slate-100">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                        Academic Departments
-                      </span>
-                      {selectedDepts.length > 0 ? (
-                        <span className="px-2.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
-                          {selectedDepts.length} selected ({selectedDepts.join(", ")})
-                        </span>
-                      ) : (
-                        <span className="text-xs text-slate-400 font-medium">
-                          (Defaults to all departments)
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={handleSelectAllDepartments}
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition"
-                      >
-                        Select All
-                      </button>
-                      <span className="text-slate-300">·</span>
-                      <button
-                        type="button"
-                        onClick={handleClearDepartments}
-                        className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
-                      >
-                        Clear Selection
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
-                    {meta?.departments?.map((d) => {
-                      const isSelected = selectedDepts.includes(d.name)
-                      return (
-                        <button
-                          key={d.id}
-                          type="button"
-                          onClick={() => handleDepartmentToggle(d.name)}
-                          className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-2 shadow-2xs ${
-                            isSelected
-                              ? "bg-slate-900 border-slate-900 text-white shadow-sm"
-                              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <span className="text-xs font-bold block truncate">{d.name}</span>
-                            {d.studentCount !== undefined && (
-                              <span
-                                className={`text-[11px] block mt-0.5 ${
-                                  isSelected ? "text-slate-300" : "text-slate-400"
-                                }`}
-                              >
-                                {d.studentCount} students
-                              </span>
-                            )}
-                          </div>
-                          {isSelected && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
-                        </button>
-                      )
-                    })}
                   </div>
                 </div>
               </div>
@@ -535,28 +619,93 @@ export function MasterFilterPanel({
                   })}
                 </div>
 
-                {/* Certification Checkboxes */}
-                <div className="pt-4 border-t border-slate-100 flex flex-wrap gap-4">
-                  <label className="inline-flex items-center gap-2.5 cursor-pointer bg-slate-50 hover:bg-slate-100/70 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-800 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={filters.hasVerifiedCert}
-                      onChange={(e) => onChange({ ...filters, hasVerifiedCert: e.target.checked })}
-                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                    />
+                {/* College Academy & Certifications Section */}
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="flex items-center gap-2 mb-3">
                     <Award className="w-4 h-4 text-emerald-600" />
-                    <span>Verified College Academy Certifications Only</span>
-                  </label>
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                      College Academy Certifications
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-normal">
+                      (Cisco, Oracle, AWS, Microsoft, Red Hat)
+                    </span>
+                  </div>
 
-                  <label className="inline-flex items-center gap-2.5 cursor-pointer bg-slate-50 hover:bg-slate-100/70 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-800 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={filters.hasOtherCert}
-                      onChange={(e) => onChange({ ...filters, hasOtherCert: e.target.checked })}
-                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                    />
-                    <span>External Industry / MOOC Certifications Only</span>
-                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    {/* Academy Dropdown */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                        Issuing College Academy
+                      </label>
+                      <select
+                        value={filters.selectedAcademy || "ALL"}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          onChange({
+                            ...filters,
+                            selectedAcademy: val,
+                            selectedCertificate: "ALL",
+                          })
+                        }}
+                        className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-2xs"
+                      >
+                        <option value="ALL">All Academies</option>
+                        {meta?.academies?.map((a) => (
+                          <option key={a.id} value={a.name}>
+                            {a.name} ({a.certificates?.length || 0} courses)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Specific Course Dropdown */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                        Specific Academy Course
+                      </label>
+                      <select
+                        value={filters.selectedCertificate || "ALL"}
+                        onChange={(e) => onChange({ ...filters, selectedCertificate: e.target.value })}
+                        disabled={!availableCertificates || availableCertificates.length === 0}
+                        className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all shadow-2xs disabled:bg-slate-50 disabled:text-slate-400"
+                      >
+                        <option value="ALL">
+                          {filters.selectedAcademy && filters.selectedAcademy !== "ALL"
+                            ? `All Courses under ${filters.selectedAcademy}`
+                            : "All Academy Courses (or select Academy first)"}
+                        </option>
+                        {availableCertificates.map((c) => (
+                          <option key={c.id} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Verification & External Filters */}
+                  <div className="flex flex-wrap gap-4">
+                    <label className="inline-flex items-center gap-2.5 cursor-pointer bg-slate-50 hover:bg-slate-100/70 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-800 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={filters.hasVerifiedCert}
+                        onChange={(e) => onChange({ ...filters, hasVerifiedCert: e.target.checked })}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                      />
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Verified by Faculty / College Only</span>
+                    </label>
+
+                    <label className="inline-flex items-center gap-2.5 cursor-pointer bg-slate-50 hover:bg-slate-100/70 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-800 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={filters.hasOtherCert}
+                        onChange={(e) => onChange({ ...filters, hasOtherCert: e.target.checked })}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                      />
+                      <span>External Industry / MOOC Certifications Only</span>
+                    </label>
+                  </div>
                 </div>
               </div>
             )}
@@ -642,6 +791,32 @@ export function MasterFilterPanel({
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg font-medium shadow-2xs">
               Verified Certs
               <button type="button" onClick={() => onChange({ ...filters, hasVerifiedCert: false })}>
+                <X className="w-3.5 h-3.5 text-emerald-400 hover:text-emerald-700" />
+              </button>
+            </span>
+          )}
+
+          {hasAcademyFilter && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 border border-purple-200 text-purple-800 rounded-lg font-medium shadow-2xs">
+              Academy: {filters.selectedAcademy}
+              <button
+                type="button"
+                onClick={() =>
+                  onChange({ ...filters, selectedAcademy: "ALL", selectedCertificate: "ALL" })
+                }
+              >
+                <X className="w-3.5 h-3.5 text-purple-400 hover:text-purple-700" />
+              </button>
+            </span>
+          )}
+
+          {hasCertFilter && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg font-medium shadow-2xs">
+              Cert: {filters.selectedCertificate}
+              <button
+                type="button"
+                onClick={() => onChange({ ...filters, selectedCertificate: "ALL" })}
+              >
                 <X className="w-3.5 h-3.5 text-emerald-400 hover:text-emerald-700" />
               </button>
             </span>

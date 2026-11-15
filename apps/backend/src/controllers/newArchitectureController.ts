@@ -264,6 +264,23 @@ export async function getNewFiltersMeta(req: Request, res: Response) {
     `).catch(() => [[]]);
     const categories = castRows.map((r: any) => r.cast.trim()).filter(Boolean);
 
+    // College Academies & their certificates
+    const [academyRows] = await pool.query<any[]>(`
+      SELECT id, AcademyName as name FROM college_academy WHERE status = 1 ORDER BY id ASC
+    `).catch(() => [[]]);
+
+    const [certRows] = await pool.query<any[]>(`
+      SELECT id, academyID, certificateName as name FROM college_academy_certificate WHERE status = 1 ORDER BY academyID ASC, id ASC
+    `).catch(() => [[]]);
+
+    const academies = academyRows.map((a: any) => ({
+      id: a.id,
+      name: a.name,
+      certificates: certRows
+        .filter((c: any) => c.academyID === a.id)
+        .map((c: any) => ({ id: c.id, name: c.name })),
+    }));
+
     res.json({
       success: true,
       data: {
@@ -271,6 +288,7 @@ export async function getNewFiltersMeta(req: Request, res: Response) {
         courses,
         branches,
         departments,
+        academies,
         semesters: ["Sem I", "Sem II", "Sem III", "Sem IV", "Sem V", "Sem VI", "Sem VII", "Sem VIII"],
         skills,
         genders: ["Male", "Female"],
@@ -319,6 +337,8 @@ function buildMasterFilterSQL(query: any) {
   // Certificates
   const hasVerifiedCert = query.hasVerifiedCert === "true" || query.hasVerifiedCert === "1";
   const hasOtherCert = query.hasOtherCert === "true" || query.hasOtherCert === "1";
+  const academyQuery = (query.academy || query.academyId) as string | undefined;
+  const certQuery = (query.collegeCertificate || query.certificate || query.certificateName) as string | undefined;
 
   // Demographics
   const genderQuery = query.gender as string | undefined;
@@ -466,8 +486,46 @@ function buildMasterFilterSQL(query: any) {
     }
   }
 
-  // Verified College Certificate Filter
-  if (hasVerifiedCert) {
+  // College Academy & Certificate Filters
+  if (certQuery && certQuery !== "ALL") {
+    if (hasVerifiedCert) {
+      whereConditions.push(`s.id IN (
+        SELECT student_id FROM student_college_certificates 
+        WHERE certificate_name = ? AND (status = 'verified' OR file_key IS NOT NULL)
+      )`);
+    } else {
+      whereConditions.push(`s.id IN (
+        SELECT student_id FROM student_college_certificates 
+        WHERE certificate_name = ?
+      )`);
+    }
+    params.push(certQuery);
+  } else if (academyQuery && academyQuery !== "ALL") {
+    const isNum = /^\d+$/.test(academyQuery);
+    if (hasVerifiedCert) {
+      whereConditions.push(`s.id IN (
+        SELECT scc.student_id 
+        FROM student_college_certificates scc
+        INNER JOIN college_academy_certificate cac ON cac.certificateName COLLATE utf8mb4_unicode_ci = scc.certificate_name COLLATE utf8mb4_unicode_ci
+        INNER JOIN college_academy ca ON ca.id = cac.academyID
+        WHERE ${isNum ? "ca.id = ?" : "(ca.AcademyName = ? OR ca.AcademyName LIKE ?)"}
+          AND (scc.status = 'verified' OR scc.file_key IS NOT NULL)
+      )`);
+    } else {
+      whereConditions.push(`s.id IN (
+        SELECT scc.student_id 
+        FROM student_college_certificates scc
+        INNER JOIN college_academy_certificate cac ON cac.certificateName COLLATE utf8mb4_unicode_ci = scc.certificate_name COLLATE utf8mb4_unicode_ci
+        INNER JOIN college_academy ca ON ca.id = cac.academyID
+        WHERE ${isNum ? "ca.id = ?" : "(ca.AcademyName = ? OR ca.AcademyName LIKE ?)"}
+      )`);
+    }
+    if (isNum) {
+      params.push(parseInt(academyQuery, 10));
+    } else {
+      params.push(academyQuery, `%${academyQuery}%`);
+    }
+  } else if (hasVerifiedCert) {
     whereConditions.push(`s.id IN (
       SELECT student_id FROM student_college_certificates 
       WHERE status = 'verified' OR file_key IS NOT NULL

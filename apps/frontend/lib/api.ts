@@ -64,6 +64,8 @@ export const newArchitectureAPI = {
     skillsMatch?: "any" | "all";
     hasVerifiedCert?: boolean | string;
     hasOtherCert?: boolean | string;
+    academy?: string;
+    collegeCertificate?: string;
     gender?: string;
     category?: string;
     city?: string;

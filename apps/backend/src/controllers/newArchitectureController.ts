@@ -488,18 +488,35 @@ function buildMasterFilterSQL(query: any) {
 
   // College Academy & Certificate Filters
   if (certQuery && certQuery !== "ALL") {
-    if (hasVerifiedCert) {
-      whereConditions.push(`s.id IN (
-        SELECT student_id FROM student_college_certificates 
-        WHERE certificate_name = ? AND (status = 'verified' OR file_key IS NOT NULL)
-      )`);
-    } else {
-      whereConditions.push(`s.id IN (
-        SELECT student_id FROM student_college_certificates 
-        WHERE certificate_name = ?
-      )`);
+    const certs = certQuery.split(",").map((c) => c.trim()).filter(Boolean);
+    if (certs.length === 1) {
+      if (hasVerifiedCert) {
+        whereConditions.push(`s.id IN (
+          SELECT student_id FROM student_college_certificates 
+          WHERE certificate_name = ? AND (status = 'verified' OR file_key IS NOT NULL)
+        )`);
+      } else {
+        whereConditions.push(`s.id IN (
+          SELECT student_id FROM student_college_certificates 
+          WHERE certificate_name = ?
+        )`);
+      }
+      params.push(certs[0]);
+    } else if (certs.length > 1) {
+      const placeholders = certs.map(() => "?").join(",");
+      if (hasVerifiedCert) {
+        whereConditions.push(`s.id IN (
+          SELECT student_id FROM student_college_certificates 
+          WHERE certificate_name IN (${placeholders}) AND (status = 'verified' OR file_key IS NOT NULL)
+        )`);
+      } else {
+        whereConditions.push(`s.id IN (
+          SELECT student_id FROM student_college_certificates 
+          WHERE certificate_name IN (${placeholders})
+        )`);
+      }
+      params.push(...certs);
     }
-    params.push(certQuery);
   } else if (academyQuery && academyQuery !== "ALL") {
     const isNum = /^\d+$/.test(academyQuery);
     if (hasVerifiedCert) {

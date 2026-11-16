@@ -141,7 +141,8 @@ export interface MasterFilterState {
   hasVerifiedCert: boolean;
   hasOtherCert: boolean;
   selectedAcademy?: string; // "ALL" or academy name/id
-  selectedCertificate?: string; // "ALL" or specific cert name
+  selectedCertificates?: string[]; // multi-select specific course names
+  selectedCertificate?: string; // backwards compatibility
   gender: string;
   category: string;
   search: string;

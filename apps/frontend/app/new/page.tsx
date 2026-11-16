@@ -25,6 +25,7 @@ const defaultFilters: MasterFilterState = {
   hasVerifiedCert: false,
   hasOtherCert: false,
   selectedAcademy: "ALL",
+  selectedCertificates: [],
   selectedCertificate: "ALL",
   gender: "ALL",
   category: "ALL",
@@ -90,7 +91,9 @@ export default function NewArchitecturePage() {
         hasVerifiedCert: filters.hasVerifiedCert ? "true" : undefined,
         hasOtherCert: filters.hasOtherCert ? "true" : undefined,
         academy: (filters.selectedAcademy && filters.selectedAcademy !== "ALL") ? filters.selectedAcademy : undefined,
-        collegeCertificate: (filters.selectedCertificate && filters.selectedCertificate !== "ALL") ? filters.selectedCertificate : undefined,
+        collegeCertificate: (filters.selectedCertificates && filters.selectedCertificates.length > 0)
+          ? filters.selectedCertificates.join(",")
+          : (filters.selectedCertificate && filters.selectedCertificate !== "ALL" ? filters.selectedCertificate : undefined),
         gender: filters.gender === "ALL" ? undefined : filters.gender,
         category: filters.category === "ALL" ? undefined : filters.category,
         search: filters.search.trim() || undefined,
@@ -158,7 +161,9 @@ export default function NewArchitecturePage() {
         hasVerifiedCert: filters.hasVerifiedCert ? "true" : undefined,
         hasOtherCert: filters.hasOtherCert ? "true" : undefined,
         academy: (filters.selectedAcademy && filters.selectedAcademy !== "ALL") ? filters.selectedAcademy : undefined,
-        collegeCertificate: (filters.selectedCertificate && filters.selectedCertificate !== "ALL") ? filters.selectedCertificate : undefined,
+        collegeCertificate: (filters.selectedCertificates && filters.selectedCertificates.length > 0)
+          ? filters.selectedCertificates.join(",")
+          : (filters.selectedCertificate && filters.selectedCertificate !== "ALL" ? filters.selectedCertificate : undefined),
         gender: filters.gender === "ALL" ? undefined : filters.gender,
         category: filters.category === "ALL" ? undefined : filters.category,
         search: filters.search.trim() || undefined,

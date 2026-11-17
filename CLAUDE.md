@@ -34,6 +34,11 @@ Training & Placement Cell (TPO) portal for Gyan Ganga Group of Institutions (GGI
   * Read `TOKEN_FLOW.md` for token-based recruiter access control.
   * Read `STUDENT_API.md` for student profile JSON endpoints.
 
+### Backend route layout (`apps/backend/src/index.ts`)
+* **Two generations of API**: legacy Google Sheets routes (`/batches`, `/students`, `/students/:enrollment`, `/image/:enrollment`, `/students/:enrollment/certs`; `studentsControllers.ts`, `config/batches.ts`, in-memory TTL `cache.ts`) sit behind a global `app.use(tokenAuth)`. New MySQL-backed routes (`/api/new/*` in `newArchitectureController.ts`, `/api/academic/*` in `academicUploadController.ts`) are registered **before** that middleware and currently have no auth middleware attached; the admin token routes use `adminAuth`. Check this ordering before adding any route.
+* **Staff auth**: `whitelisted_emails` (also holds the scrypt password hash + role) and `otp_codes` in Postgres. Flow in `authController.ts`: request-otp -> verify-otp (returns short-lived setup JWT) -> set-password; then `login` sets the `tpo_user` cookie. `middleware/adminAuth.ts` (`adminAuth`, `superAdminAuth`, `resolveUser`) re-checks the DB row every request; `tokenAuth` accepts either `tpo_session` (recruiter link) or `tpo_user`. Seed the super admin with `cd apps/backend && pnpm seed`. Details in `TOKEN_FLOW.md`.
+* **Filter engine**: `buildMasterFilterSQL` in `newArchitectureController.ts` is shared by `/api/new/students` and `/api/new/export`; frontend counterpart is `components/master-filter-panel.tsx` (used by `app/new` and `app/academic-upload`).
+
 ## 4. Conventions Not Enforced by Tooling
 * **Compact Filter UI**: Keep filter controls compact using popover dropdowns to prevent excessive vertical height above candidate listings.
 * **Academic Department Resolution**: A student's actual department must be queried via `student_session` -> `classes` -> `department` (latest active session), not by branch code alone.
@@ -54,7 +59,7 @@ Training & Placement Cell (TPO) portal for Gyan Ganga Group of Institutions (GGI
 
 ## 7. Environment Variables (Names Only)
 * **Frontend**: `NEXT_PUBLIC_BACKEND_URL`
-* **Backend**: `PORT`, `NODE_ENV`, `FRONTEND_URL`, `SPREADSHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `DATABASE_URL`, `ADMIN_PASSWORD`, `SESSION_SECRET`, `GG_DB_HOST`, `GG_DB_PORT`, `GG_DB_USER`, `GG_DB_PASSWORD`, `GG_DB_NAME`
+* **Backend**: `PORT`, `NODE_ENV`, `FRONTEND_URL`, `SPREADSHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `DATABASE_URL`, `SESSION_SECRET`, `SUPER_ADMIN_EMAIL`, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`, `GG_DB_HOST`, `GG_DB_PORT`, `GG_DB_USER`, `GG_DB_PASSWORD`, `GG_DB_NAME`
 
 ## 8. Workflow Rules
 * **Before calling a task done**, always run and confirm zero errors:

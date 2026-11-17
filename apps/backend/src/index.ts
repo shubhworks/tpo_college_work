@@ -28,9 +28,16 @@ import {
     downloadAcademicCSVTemplate,
 } from "./controllers/academicUploadController";
 import { validateToken, checkSession } from "./controllers/tokenController";
-import { adminLogin, listTokens, createToken, revokeToken, updateTokenExpiry } from "./controllers/adminController";
+import { listTokens, createToken, revokeToken, updateTokenExpiry } from "./controllers/adminController";
 import { tokenAuth } from "./middleware/tokenAuth";
-import { adminAuth } from "./middleware/adminAuth";
+import { adminAuth, superAdminAuth } from "./middleware/adminAuth";
+import { requestOtp, verifyOtp, setPassword, login, logout, me } from "./controllers/authController";
+import {
+    listWhitelist,
+    addWhitelistedEmail,
+    updateWhitelistedEmail,
+    removeWhitelistedEmail,
+} from "./controllers/whitelistController";
 
 import path from "path";
 
@@ -68,26 +75,39 @@ app.get("/" , (req,res) => {
 app.post("/api/validate-token", validateToken);
 app.get("/api/check-session", tokenAuth, checkSession);
 
-// New Database Architecture Routes (Live MySQL gg_app)
-app.get("/api/new/batches", getNewBatches);
-app.get("/api/new/courses", getNewCourses);
-app.get("/api/new/branches", getNewBranches);
-app.get("/api/new/departments", getNewDepartments);
-app.get("/api/new/semesters", getNewSemesters);
-app.get("/api/new/filters-meta", getNewFiltersMeta);
-app.get("/api/new/export", exportNewStudentsCSV);
-app.get("/api/new/students", getNewStudents);
+// New Database Architecture Routes (Live MySQL gg_app): recruiter link or staff session
+app.get("/api/new/batches", tokenAuth, getNewBatches);
+app.get("/api/new/courses", tokenAuth, getNewCourses);
+app.get("/api/new/branches", tokenAuth, getNewBranches);
+app.get("/api/new/departments", tokenAuth, getNewDepartments);
+app.get("/api/new/semesters", tokenAuth, getNewSemesters);
+app.get("/api/new/filters-meta", tokenAuth, getNewFiltersMeta);
+app.get("/api/new/export", tokenAuth, exportNewStudentsCSV);
+app.get("/api/new/students", tokenAuth, getNewStudents);
 
-// Academic Upload Architecture Routes (students_acadmic_details)
-app.get("/api/academic/students-search", searchStudentsForAcademic);
-app.get("/api/academic/records", getAcademicRecords);
-app.post("/api/academic/single-entry", upsertSingleAcademicRecord);
-app.post("/api/academic/bulk-upload", bulkUpsertAcademicRecords);
-app.delete("/api/academic/records/:id", deleteAcademicRecord);
-app.get("/api/academic/template.csv", downloadAcademicCSVTemplate);
+// Academic Upload Routes (students_acadmic_details, writes to ERP): signed-in staff only
+app.get("/api/academic/students-search", adminAuth, searchStudentsForAcademic);
+app.get("/api/academic/records", adminAuth, getAcademicRecords);
+app.post("/api/academic/single-entry", adminAuth, upsertSingleAcademicRecord);
+app.post("/api/academic/bulk-upload", adminAuth, bulkUpsertAcademicRecords);
+app.delete("/api/academic/records/:id", adminAuth, deleteAcademicRecord);
+app.get("/api/academic/template.csv", adminAuth, downloadAcademicCSVTemplate);
 
 // Admin Routes
-app.post("/api/admin/login", adminLogin);
+// Staff email auth (first-time activation via OTP, then email + password)
+app.post("/api/auth/request-otp", requestOtp);
+app.post("/api/auth/verify-otp", verifyOtp);
+app.post("/api/auth/set-password", setPassword);
+app.post("/api/auth/login", login);
+app.post("/api/auth/logout", logout);
+app.get("/api/auth/me", me);
+
+// Whitelist management (super admin only)
+app.get("/api/admin/whitelist", superAdminAuth, listWhitelist);
+app.post("/api/admin/whitelist", superAdminAuth, addWhitelistedEmail);
+app.patch("/api/admin/whitelist/:id", superAdminAuth, updateWhitelistedEmail);
+app.delete("/api/admin/whitelist/:id", superAdminAuth, removeWhitelistedEmail);
+
 app.get("/api/admin/tokens", adminAuth, listTokens);
 app.post("/api/admin/tokens", adminAuth, createToken);
 app.post("/api/admin/tokens/:id/revoke", adminAuth, revokeToken);

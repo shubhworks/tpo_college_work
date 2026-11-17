@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { name: "Home", href: "/" },
   { name: "New TPO Portal", href: "/new" },
   { name: "Add Academic Data", href: "/academic-upload" },
+  { name: "ADMIN", href: "/admin" },
   // { name: "About", href: "/about" },
   // { name: "T&P Cell", href: "/tp-cell" },
   { name: "Contact Us", href: "/contact" },

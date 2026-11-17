@@ -118,7 +118,10 @@ sudo systemctl reload caddy
    DATABASE_URL="postgresql://neondb_owner:your_password@ep-xyz.aws.neon.tech/neondb?sslmode=require"
 
    # Auth & Admin
-   ADMIN_PASSWORD=your_admin_password
+   SUPER_ADMIN_EMAIL=tpo@ggits.org
+   BREVO_API_KEY=your_brevo_api_key
+   BREVO_SENDER_EMAIL=verified_sender@yourdomain
+   BREVO_SENDER_NAME=TPO Portal - GGITS
    SESSION_SECRET=your_jwt_secret
 
    # Live ERP MySQL Database (gg_app)

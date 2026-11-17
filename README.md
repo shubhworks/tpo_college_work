@@ -40,7 +40,7 @@ The TPO Portal now features a robust, secure, and user-friendly access control s
 *   **Authentication**:
     *   **Stateless Tokens**: Cryptographically random UUIDs (`crypto.randomUUID`) are used as entry keys.
     *   **Stateful Sessions**: Upon token validation, the backend issues a signed JWT stored in a `httpOnly`, `Secure`, `SameSite` cookie named `tpo_session`.
-*   **Admin Security**: A separate `/admin` dashboard protected by a single `ADMIN_PASSWORD` env var allows for link management.
+*   **Admin Security**: A separate `/admin` dashboard protected by staff email + password accounts (whitelisted emails, OTP-based first-time activation; see `TOKEN_FLOW.md`) allows for link management.
 
 ## Database Schema (`AccessToken`)
 | Field | Type | Description |
@@ -55,7 +55,7 @@ The TPO Portal now features a robust, secure, and user-friendly access control s
 ## The Flow: Step-by-Step
 
 ### 1. Link Generation (Admin)
-*   The Admin logs into `/admin` using the `ADMIN_PASSWORD`.
+*   The Admin signs in at `/login` with their whitelisted email and password, then opens `/admin`.
 *   The Admin generates a new token by providing a **Label** and **Expiry** (1 Day, 7 Days, 30 Days, or Never).
 *   The system creates a database record and provides a full URL: `https://.../portal?token=UUID`.
 *   **Security Note**: The full token string is only displayed **once** upon creation and is masked thereafter for security.
@@ -105,3 +105,32 @@ Verification:
 
 - pnpm --filter frontend lint passes, with existing warnings only.
 - pnpm --filter frontend build passes after allowing network access for Google Fonts.
+---
+
+# Staff Authentication & Page Access
+
+Staff sign in at `/login` with a whitelisted email and password. Full details of the OTP flow are in `TOKEN_FLOW.md`.
+
+## Page Access
+
+| Page | Who can view it |
+| :--- | :--- |
+| `/` and `/branch/[branch]` | Staff or a recruiter access link |
+| `/new`, `/about`, `/tp-cell` | Staff or a recruiter access link |
+| `/academic-upload` | Signed-in staff only |
+| `/admin` | Signed-in staff (the whitelist panel is super admin only) |
+| `/contact` | Open |
+| `/login`, `/portal`, `/access-denied` | Open (entry points) |
+| `/googleform` | Open (redirects to a Google Form) |
+
+Signed-out visitors are redirected to `/login?next=<page>` and return to that page after signing in.
+
+## API Access
+*   `/api/new/*` (filters, students, CSV export): recruiter link session or staff session.
+*   `/api/academic/*` (writes to the ERP table): signed-in staff only.
+*   `/api/admin/tokens*`: signed-in staff. `/api/admin/whitelist*`: super admin only.
+
+## Setup
+1. Set `SESSION_SECRET`, `SUPER_ADMIN_EMAIL`, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` and `BREVO_SENDER_NAME` in the backend `.env`.
+2. `cd apps/backend && npx prisma migrate deploy && pnpm seed` to create the super admin.
+3. The super admin opens `/login` -> **First Time Activation**, verifies the OTP and sets a password, then adds other staff emails from `/admin`.

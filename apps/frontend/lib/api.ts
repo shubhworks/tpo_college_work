@@ -32,12 +32,34 @@ export const authAPI = {
   checkSession: () => apiClient.get("/api/check-session"),
 }
 
+export type AuthPurpose = "ACTIVATE" | "RESET"
+
+export interface AuthUser {
+  email: string
+  role: "SUPER_ADMIN" | "ADMIN"
+}
+
+export const staffAuthAPI = {
+  requestOtp: (email: string, purpose: AuthPurpose) => apiClient.post("/api/auth/request-otp", { email, purpose }),
+  verifyOtp: (email: string, purpose: AuthPurpose, otp: string) =>
+    apiClient.post<{ setupToken: string }>("/api/auth/verify-otp", { email, purpose, otp }),
+  setPassword: (setupToken: string, password: string) =>
+    apiClient.post("/api/auth/set-password", { setupToken, password }),
+  login: (email: string, password: string) => apiClient.post("/api/auth/login", { email, password }),
+  logout: () => apiClient.post("/api/auth/logout"),
+  me: () => apiClient.get<AuthUser>("/api/auth/me"),
+}
+
 export const adminAPI = {
-  login: (password: string) => apiClient.post("/api/admin/login", { password }),
   getTokens: () => apiClient.get("/api/admin/tokens"),
   createToken: (label: string, expiry: string) => apiClient.post("/api/admin/tokens", { label, expiry }),
   revokeToken: (id: string) => apiClient.post(`/api/admin/tokens/${id}/revoke`),
   updateTokenExpiry: (id: string, expiry: string) => apiClient.post(`/api/admin/tokens/${id}/expiry`, { expiry }),
+  getWhitelist: () => apiClient.get("/api/admin/whitelist"),
+  addWhitelistedEmail: (email: string) => apiClient.post("/api/admin/whitelist", { email }),
+  updateWhitelistedEmail: (id: string, data: { email?: string; isActive?: boolean }) =>
+    apiClient.patch(`/api/admin/whitelist/${id}`, data),
+  removeWhitelistedEmail: (id: string) => apiClient.delete(`/api/admin/whitelist/${id}`),
 }
 
 export const newArchitectureAPI = {

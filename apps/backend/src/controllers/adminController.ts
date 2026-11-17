@@ -1,40 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
-import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-
-export const adminLogin = async (req: Request, res: Response) => {
-    const { password } = req.body;
-    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-    const SESSION_SECRET = process.env.SESSION_SECRET || 'default-session-secret';
-
-    if (!ADMIN_PASSWORD) {
-        console.error("ADMIN_PASSWORD is not set in environment variables.");
-        return res.status(500).json({ error: "Admin access not configured." });
-    }
-
-    if (password !== ADMIN_PASSWORD) {
-        return res.status(401).json({ error: "Invalid admin password." });
-    }
-
-    const adminToken = jwt.sign(
-        { role: 'admin' },
-        SESSION_SECRET,
-        { expiresIn: '8h' }
-    );
-
-    const isProd = process.env.NODE_ENV === 'production';
-    
-    res.cookie('tpo_admin', adminToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? 'none' : 'lax',
-        path: '/',
-        maxAge: 8 * 60 * 60 * 1000 // 8 hours
-    });
-
-    return res.json({ success: true });
-};
 
 export const listTokens = async (req: Request, res: Response) => {
     try {

@@ -11,8 +11,9 @@ import { BatchSelector } from "./batch-selector"
 const NAV_ITEMS = [
   { name: "Home", href: "/" },
   { name: "New TPO Portal", href: "/new" },
-  { name: "About", href: "/about" },
-  { name: "T&P Cell", href: "/tp-cell" },
+  { name: "Add Academic Data", href: "/academic-upload" },
+  // { name: "About", href: "/about" },
+  // { name: "T&P Cell", href: "/tp-cell" },
   { name: "Contact Us", href: "/contact" },
 ]
 

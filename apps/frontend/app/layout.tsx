@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TPO Certificates Portal | Gyan Ganga Group of Institutions",
+  title: "TPO Admin Portal | Gyan Ganga Group of Institutions",
   description: "",
 };
 
